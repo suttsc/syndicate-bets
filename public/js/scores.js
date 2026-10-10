@@ -36,7 +36,8 @@ async function refresh() {
     renderRoundHead(round, rows, summary, prev, next);
     renderSummary(summary);
     $('games').innerHTML = rows.map((row) => gameCard(row, round.theGuy)).join('');
-    $('updated').textContent = round.status === 'complete' ? 'Round complete' : `Updated ${clockTime()} · refreshes automatically`;
+    $('updated').textContent = data.warning
+      ?? (round.status === 'complete' ? 'Round complete' : `Updated ${clockTime()} · refreshes automatically`);
 
     // Finished rounds never change, so stop polling.
     if (round.status !== 'complete') {

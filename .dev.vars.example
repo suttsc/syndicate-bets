@@ -1,0 +1,2 @@
+ADMIN_PASSWORD=change-me
+# ESPN_BASE=http://127.0.0.1:8791   # optional: point at a stand-in ESPN server

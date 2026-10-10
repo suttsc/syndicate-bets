@@ -81,12 +81,16 @@ public/
   js/config.js              leagues, people
   js/outcome.js             outcome() + summarise()  (pure, unit-tested)
   js/ui.js                  escaping, crest, picker badge, formatting
-  js/api.js                 fetch wrappers (mock mode during design)
-  js/mock-data.js           design-phase data (dev only)
+  js/api.js                 fetch wrappers for /api/*
+  js/mock-api.js            sample-data API (?mock)
+  js/mock-data.js           sample rounds
   js/scores.js history.js leaderboard.js admin.js
 functions/
   api/rounds/index.js       GET list, POST create
-  api/rounds/[n].js         GET (latest|n), PUT edit
+  api/rounds/[number].js    GET (latest|n), PUT edit
+  api/_middleware.js        JSON error handling
+  _lib/rounds.js            D1 queries, settling, leaderboard
+  _lib/http.js              JSON helpers + HttpError
   api/fixtures.js           ESPN proxy
   api/leaderboard.js
   _lib/espn.js              fetch + normalise ESPN events
@@ -101,13 +105,13 @@ README.md                   setup + usage
 ```
 
 ## Phases
-1. **Frontend design** — *done (awaiting sign-off).* Dark gradient theme; Live page with round number + ‹ › nav; History; Table (leaderboard); bottom tab bar; admin with New round / Edit round, pickers and The Guy — all on mock data (11 past rounds + a live Round 12).
-2. **Backend** — D1 schema + migrations, Functions above, ESPN module, settling, validation + tests; switch `api.js` off mock mode.
-3. **Deploy** —
+1. **Frontend design** — *done.* Dark gradient theme; Live page with round number + ‹ › nav; History; Table (leaderboard); bottom tab bar; admin with New round / Edit round, pickers and The Guy — all on mock data (11 past rounds + a live Round 12).
+2. **Backend** — *done.* D1 schema, Functions, ESPN module, settling, validation; 17 unit tests + end-to-end run against local D1 and a stand-in ESPN. Sample data still available via `?mock`.
+3. **Deploy** — code pushed to `suttsc/syndicate-bets` (`main`); remaining steps are one-off Cloudflare setup (see README):
    1. Create GitHub repo, push.
    2. Cloudflare → Workers & Pages → Create → Pages → Connect to Git → repo. Build command `npm run build`, output `public`.
-   3. `npx wrangler d1 create football-bets`, add binding `DB` to the Pages project, run `npx wrangler d1 migrations apply football-bets --remote`.
-   4. Pages → Settings → Variables and secrets → add secret `ADMIN_PASSWORD`.
+   3. `npx wrangler d1 create syndicate-bets`, paste the id into `wrangler.toml` and push (the `DB` binding comes from that file), then `npm run db:migrate:remote`.
+   4. Pages → Settings → Variables and secrets → add secret `ADMIN_PASSWORD`, then retry the deployment.
    5. Pages → Custom domains → `bets.chrisutton.co.uk`.
 
 ## Verification

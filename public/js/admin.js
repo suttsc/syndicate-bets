@@ -99,8 +99,12 @@ function render() {
   const complete = state.slots.length > 0 && ready === state.slots.length && state.theGuy;
   $('save').disabled = !complete;
 
-  if (!complete && state.slots.length) {
-    $('save-status').textContent = state.theGuy ? `${ready} of ${state.slots.length} games ready` : 'Choose The Guy';
+  if (!state.slots.length) {
+    $('save-status').textContent = 'Add a game';
+  } else if (!state.theGuy) {
+    $('save-status').textContent = 'Choose The Guy';
+  } else {
+    $('save-status').textContent = complete ? 'Ready to save' : `${ready} of ${state.slots.length} games ready`;
   }
 }
 

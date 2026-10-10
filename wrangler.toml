@@ -1,0 +1,11 @@
+# Cloudflare Pages project config. Functions in /functions deploy alongside the static site in /public.
+name = "syndicate-bets"
+compatibility_date = "2025-09-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "syndicate-bets"
+# Replace with the id printed by `npx wrangler d1 create syndicate-bets` (see README).
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"

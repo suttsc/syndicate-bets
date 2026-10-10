@@ -1,0 +1,80 @@
+{
+  "leagues": [{ "slug": "eng.1", "name": "English Premier League" }],
+  "events": [
+    {
+      "id": "740001",
+      "date": "2026-10-17T14:00Z",
+      "name": "Chelsea at Arsenal",
+      "competitions": [
+        {
+          "id": "740001",
+          "status": { "clock": 4020, "displayClock": "67'", "period": 2, "type": { "id": "2", "name": "STATUS_SECOND_HALF", "state": "in", "completed": false, "description": "Second Half", "detail": "67'", "shortDetail": "67'" } },
+          "competitors": [
+            { "id": "359", "homeAway": "home", "score": "2", "team": { "id": "359", "displayName": "Arsenal", "abbreviation": "ARS", "color": "ef0107", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/359.png" } },
+            { "id": "363", "homeAway": "away", "score": "1", "team": { "id": "363", "displayName": "Chelsea", "abbreviation": "CHE", "color": "034694", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/363.png" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "740002",
+      "date": "2026-10-17T16:30Z",
+      "name": "Liverpool at Manchester United",
+      "competitions": [
+        {
+          "id": "740002",
+          "status": { "clock": 2700, "displayClock": "45'+2'", "period": 1, "type": { "id": "23", "name": "STATUS_HALFTIME", "state": "in", "completed": false, "description": "Halftime", "detail": "Halftime", "shortDetail": "HT" } },
+          "competitors": [
+            { "id": "360", "homeAway": "home", "score": "1", "team": { "id": "360", "displayName": "Manchester United", "abbreviation": "MUN", "color": "da291c", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/360.png" } },
+            { "id": "364", "homeAway": "away", "score": "1", "team": { "id": "364", "displayName": "Liverpool", "abbreviation": "LIV", "color": "c8102e", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/364.png" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "740003",
+      "date": "2026-10-18T13:00Z",
+      "name": "Newcastle United at Manchester City",
+      "competitions": [
+        {
+          "id": "740003",
+          "status": { "clock": 5400, "displayClock": "90'+4'", "period": 2, "type": { "id": "28", "name": "STATUS_FULL_TIME", "state": "post", "completed": true, "description": "Full Time", "detail": "FT", "shortDetail": "FT" } },
+          "competitors": [
+            { "id": "382", "homeAway": "home", "score": "0", "team": { "id": "382", "displayName": "Manchester City", "abbreviation": "MNC", "color": "99c5ea", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/382.png" } },
+            { "id": "361", "homeAway": "away", "score": "3", "team": { "id": "361", "displayName": "Newcastle United", "abbreviation": "NEW", "color": "000000", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/361.png" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "740004",
+      "date": "2026-10-19T19:00Z",
+      "name": "Aston Villa at Tottenham Hotspur",
+      "competitions": [
+        {
+          "id": "740004",
+          "status": { "clock": 0, "displayClock": "0'", "period": 0, "type": { "id": "6", "name": "STATUS_POSTPONED", "state": "post", "completed": false, "description": "Postponed", "detail": "Postponed", "shortDetail": "Postponed" } },
+          "competitors": [
+            { "id": "367", "homeAway": "home", "score": "0", "team": { "id": "367", "displayName": "Tottenham Hotspur", "abbreviation": "TOT", "color": "132257", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/367.png" } },
+            { "id": "362", "homeAway": "away", "score": "0", "team": { "id": "362", "displayName": "Aston Villa", "abbreviation": "AVL", "color": "670e36", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/362.png" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "740005",
+      "date": "2026-10-19T20:00Z",
+      "name": "Brighton at Everton",
+      "competitions": [
+        {
+          "id": "740005",
+          "status": { "clock": 0, "displayClock": "0'", "period": 0, "type": { "id": "1", "name": "STATUS_SCHEDULED", "state": "pre", "completed": false, "description": "Scheduled", "detail": "Mon, October 19th at 4:00 PM EDT", "shortDetail": "10/19 - 4:00 PM EDT" } },
+          "competitors": [
+            { "id": "368", "homeAway": "home", "score": "0", "team": { "id": "368", "displayName": "Everton", "abbreviation": "EVE", "color": "003399", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/368.png" } },
+            { "id": "331", "homeAway": "away", "score": "0", "team": { "id": "331", "displayName": "Brighton & Hove Albion", "abbreviation": "BHA", "color": "0057b8", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/331.png" } }
+          ]
+        }
+      ]
+    }
+  ]
+}
