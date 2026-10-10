@@ -1,13 +1,14 @@
 import { loadBoard, loadFixtures, savePicks } from './api.js';
-import { LEAGUES } from './leagues.js';
+import { LEAGUES, PEOPLE, personColor } from './config.js';
 import { crest, esc, kickoffTime, longDate } from './ui.js';
 
 const PASSWORD_KEY = 'bets.adminPassword';
 
 const $ = (id) => document.getElementById(id);
 
-/** @type {Array<{league: string, date: string, eventId: string|null, teamId: string|null, fixtures: Array|null, loading: boolean}>} */
+/** @type {Array<{picker: string|null, league: string, date: string, eventId: string|null, teamId: string|null, fixtures: Array|null, loading: boolean}>} */
 let slots = [];
+let theGuy = null;
 
 const storage = {
   get: (key) => { try { return localStorage.getItem(key) ?? ''; } catch { return ''; } },
@@ -21,7 +22,7 @@ function nextSaturday() {
 }
 
 function newSlot(overrides = {}) {
-  return { league: 'eng.1', date: nextSaturday(), eventId: null, teamId: null, fixtures: null, loading: false, ...overrides };
+  return { picker: null, league: 'eng.1', date: nextSaturday(), eventId: null, teamId: null, fixtures: null, loading: false, ...overrides };
 }
 
 async function fetchFixtures(slot) {
@@ -38,12 +39,31 @@ async function fetchFixtures(slot) {
   }
 }
 
+const isReady = (slot) => slot.picker && slot.eventId && slot.teamId;
+
+/** A row of name buttons; used for The Guy and for each game's picker. */
+function personButtons({ selected, attrs, dimmed = [], color = personColor }) {
+  return PEOPLE.map(({ name }) => {
+    const active = name === selected;
+    return `
+      <button type="button" ${attrs(name)} aria-pressed="${active}"
+        class="flex h-12 items-center justify-center gap-1.5 rounded-xl text-sm font-bold ring-2 transition active:scale-95 ${active ? 'text-white ring-transparent' : 'bg-slate-100 ring-transparent dark:bg-slate-800'} ${!active && dimmed.includes(name) ? 'opacity-40' : ''}"
+        ${active ? `style="background:${color(name)}"` : ''}>
+        ${name}
+      </button>`;
+  }).join('');
+}
+
 function render() {
+  $('the-guy').innerHTML = personButtons({ selected: theGuy, attrs: (name) => `data-guy="${name}"`, color: () => '#7c3aed' });
   $('slots').innerHTML = slots.map(slotCard).join('');
-  const complete = slots.length > 0 && slots.every((s) => s.eventId && s.teamId);
+
+  const ready = slots.filter(isReady).length;
+  const complete = slots.length > 0 && ready === slots.length && theGuy;
   $('save').disabled = !complete;
+
   if (!complete && slots.length) {
-    $('save-status').textContent = `${slots.filter((s) => s.eventId && s.teamId).length} of ${slots.length} games ready`;
+    $('save-status').textContent = theGuy ? `${ready} of ${slots.length} games ready` : 'Choose The Guy';
   }
 }
 
@@ -83,7 +103,18 @@ function slotCard(slot, index) {
         <button type="button" data-remove="${index}" class="-mr-2 rounded-lg px-2 py-1 text-sm font-semibold text-rose-600 active:bg-rose-500/10 dark:text-rose-400">Remove</button>
       </div>
 
-      <div class="mt-2 grid gap-3 sm:grid-cols-[1fr_auto] sm:gap-2">
+      <fieldset class="mt-2">
+        <legend class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Picked by</legend>
+        <div class="mt-1.5 grid grid-cols-4 gap-2">
+          ${personButtons({
+            selected: slot.picker,
+            attrs: (name) => `data-picker="${name}" data-index="${index}"`,
+            dimmed: slots.filter((s) => s !== slot).map((s) => s.picker),
+          })}
+        </div>
+      </fieldset>
+
+      <div class="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:gap-2">
         <label class="block min-w-0">
           <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">League</span>
           <select data-field="league" data-index="${index}" class="${field}">
@@ -128,12 +159,24 @@ $('slots').addEventListener('change', (e) => {
 $('slots').addEventListener('click', (e) => {
   const team = e.target.closest('[data-team]');
   const remove = e.target.closest('[data-remove]');
+  const person = e.target.closest('[data-picker]');
 
-  if (team) {
+  if (person) {
+    slots[Number(person.dataset.index)].picker = person.dataset.picker;
+    render();
+  } else if (team) {
     slots[Number(team.dataset.index)].teamId = team.dataset.team;
     render();
   } else if (remove) {
     slots.splice(Number(remove.dataset.remove), 1);
+    render();
+  }
+});
+
+$('the-guy').addEventListener('click', (e) => {
+  const button = e.target.closest('[data-guy]');
+  if (button) {
+    theGuy = button.dataset.guy;
     render();
   }
 });
@@ -152,8 +195,8 @@ $('save').addEventListener('click', async () => {
   $('save-status').textContent = 'Saving…';
 
   try {
-    const picks = slots.map(({ league, date, eventId, teamId }) => ({ league, date, eventId, teamId }));
-    const { updatedAt } = await savePicks(picks, $('password').value);
+    const picks = slots.map(({ picker, league, date, eventId, teamId }) => ({ picker, league, date, eventId, teamId }));
+    const { updatedAt } = await savePicks({ picks, theGuy }, $('password').value);
     $('save-status').innerHTML = '<span class="font-semibold text-emerald-600 dark:text-emerald-400">Saved ✓ Everyone sees these now</span>';
     $('last-saved').textContent = `Last saved ${longDate(updatedAt)}`;
   } catch (error) {
@@ -164,12 +207,13 @@ $('save').addEventListener('click', async () => {
 });
 
 // Start from the current picks so editing one game doesn't mean re-entering all four.
-const { picks, events, updatedAt } = await loadBoard();
+const { picks, events, theGuy: currentGuy, updatedAt } = await loadBoard();
+theGuy = currentGuy;
 $('last-saved').textContent = `Last saved ${longDate(updatedAt)}`;
 
 slots = picks.length
   ? picks.map((p) => newSlot({ ...p, fixtures: events.filter((e) => e.league === p.league) }))
-  : Array.from({ length: 4 }, () => newSlot());
+  : PEOPLE.map(({ name }) => newSlot({ picker: name }));
 
 render();
 slots.filter((s) => !s.fixtures).forEach(fetchFixtures);

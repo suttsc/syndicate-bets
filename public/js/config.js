@@ -16,3 +16,13 @@ export const LEAGUES = [
 ];
 
 export const leagueName = (slug) => LEAGUES.find((l) => l.slug === slug)?.name ?? slug;
+
+// The syndicate. Each week every person backs one team and one of them is "The Guy".
+export const PEOPLE = [
+  { name: 'Chris', color: '#2563eb' },
+  { name: 'Jamie', color: '#db2777' },
+  { name: 'Paul', color: '#0d9488' },
+  { name: 'Steve', color: '#ea580c' },
+];
+
+export const personColor = (name) => PEOPLE.find((p) => p.name === name)?.color ?? '#64748b';

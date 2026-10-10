@@ -1,7 +1,7 @@
 import { loadBoard } from './api.js';
-import { leagueName } from './leagues.js';
+import { leagueName } from './config.js';
 import { outcome, summarise } from './outcome.js';
-import { STATUS_STYLES, clockTime, crest, esc, kickoffTime, longDate } from './ui.js';
+import { STATUS_STYLES, clockTime, crest, esc, kickoffTime, longDate, picker } from './ui.js';
 
 const LIVE_REFRESH_MS = 60_000;
 const IDLE_REFRESH_MS = 5 * 60_000;
@@ -15,7 +15,7 @@ async function refresh() {
   $('refresh-icon').classList.add('animate-spin');
 
   try {
-    const { picks, events } = await loadBoard();
+    const { picks, events, theGuy } = await loadBoard();
     const rows = picks.map((pick) => {
       const event = events.find((e) => e.id === pick.eventId);
       return { pick, event, result: outcome(event, pick.teamId) };
@@ -25,7 +25,7 @@ async function refresh() {
 
     renderSubtitle(rows, summary);
     renderSummary(summary);
-    renderGames(rows);
+    renderGames(rows, theGuy);
     $('updated').textContent = `Updated ${clockTime()} · refreshes automatically`;
 
     timer = setTimeout(refresh, summary.live > 0 ? LIVE_REFRESH_MS : IDLE_REFRESH_MS);
@@ -98,7 +98,7 @@ function segmentBar({ counts }) {
     .join('')}</div>`;
 }
 
-function renderGames(rows) {
+function renderGames(rows, theGuy) {
   if (rows.length === 0) {
     $('games').innerHTML = `
       <div class="rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center text-slate-500 md:col-span-2 dark:border-slate-800">
@@ -109,10 +109,10 @@ function renderGames(rows) {
     return;
   }
 
-  $('games').innerHTML = rows.map(gameCard).join('');
+  $('games').innerHTML = rows.map((row) => gameCard(row, theGuy)).join('');
 }
 
-function gameCard({ pick, event, result }) {
+function gameCard({ pick, event, result }, theGuy) {
   if (!event) {
     return `<article class="rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">Game not found (${esc(pick.league)} · ${esc(pick.date)})</article>`;
   }
@@ -137,16 +137,17 @@ function gameCard({ pick, event, result }) {
   return `
     <article class="relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
       <span class="absolute inset-y-0 left-0 w-1.5 ${style.bg}" aria-hidden="true"></span>
-      <div class="flex items-center justify-between gap-2 px-4 pt-3 pl-5 text-xs">
-        <p class="truncate font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">${esc(leagueName(event.league))}</p>
-        ${statusChip(event)}
+      <div class="flex items-center justify-between gap-2 px-4 pt-3 pl-5">
+        ${picker(pick.picker, pick.picker === theGuy)}
+        <span class="text-xs">${statusChip(event)}</span>
       </div>
       <div class="space-y-2.5 px-4 py-3 pl-5">
         ${teamRow(event.home)}
         ${teamRow(event.away)}
       </div>
-      <div class="border-t border-slate-100 px-4 py-2 pl-5 dark:border-slate-800">
-        <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${style.soft}">
+      <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-2 pl-5 dark:border-slate-800">
+        <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">${esc(leagueName(event.league))}</p>
+        <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${style.soft}">
           <span class="size-1.5 rounded-full ${style.bg}"></span>${label}
         </span>
       </div>

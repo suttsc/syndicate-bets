@@ -26,8 +26,13 @@ const SCENARIOS = {
   empty: [],
 };
 
-// Backed teams: Arsenal, Liverpool, Leeds, Celtic.
-const PICKED = { 1: '359', 2: '364', 3: '331', 4: '256' };
+// Who backed what: Chris → Arsenal, Jamie → Liverpool, Paul → Leeds, Steve → Celtic.
+const PICKED = {
+  1: { teamId: '359', picker: 'Chris' },
+  2: { teamId: '364', picker: 'Jamie' },
+  3: { teamId: '331', picker: 'Paul' },
+  4: { teamId: '256', picker: 'Steve' },
+};
 
 export function mockScenario() {
   const name = new URLSearchParams(location.search).get('scenario') ?? 'live';
@@ -35,7 +40,8 @@ export function mockScenario() {
 
   return {
     events,
-    picks: events.map((e) => ({ eventId: e.id, league: e.league, date: e.kickoff.slice(0, 10), teamId: PICKED[e.id] })),
+    picks: events.map((e) => ({ eventId: e.id, league: e.league, date: e.kickoff.slice(0, 10), ...PICKED[e.id] })),
+    theGuy: events.length ? 'Paul' : null,
     updatedAt: new Date(Date.now() - 2 * 86_400_000).toISOString(),
   };
 }

@@ -1,4 +1,5 @@
 // Small rendering helpers shared by both pages.
+import { personColor } from './config.js';
 
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 
@@ -14,6 +15,23 @@ export function crest(team, size = 'size-9') {
 
   return `<img src="${esc(team.logo)}" alt="" loading="lazy" class="${size} shrink-0 object-contain" onerror="this.outerHTML=this.dataset.fallback" data-fallback="${esc(badge)}">`;
 }
+
+/** Who made a pick: initial avatar + name, plus The Guy badge for this week's Guy. */
+export function picker(name, isTheGuy) {
+  if (!name) {
+    return '<span class="text-sm text-slate-400">Unassigned</span>';
+  }
+
+  return `
+    <span class="flex min-w-0 items-center gap-2">
+      <span class="grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold text-white" style="background:${esc(personColor(name))}">${esc(name[0])}</span>
+      <span class="truncate font-bold">${esc(name)}</span>
+      ${isTheGuy ? theGuyBadge() : ''}
+    </span>`;
+}
+
+export const theGuyBadge = () =>
+  '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm shadow-violet-600/30"><span aria-hidden="true">👑</span>The Guy</span>';
 
 export const kickoffTime = (iso) =>
   new Intl.DateTimeFormat('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));

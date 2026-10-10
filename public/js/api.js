@@ -5,7 +5,7 @@ const USE_MOCK = true;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** @returns {Promise<{picks: Array, events: Array, updatedAt: string}>} picks with their matched events */
+/** @returns {Promise<{picks: Array, events: Array, theGuy: string|null, updatedAt: string}>} picks with their matched events */
 export async function loadBoard() {
   if (USE_MOCK) {
     await delay(300);
@@ -25,13 +25,14 @@ export async function loadFixtures(league, date) {
   throw new Error('Live API not wired up yet');
 }
 
-export async function savePicks(picks, password) {
+/** @param {{picks: Array, theGuy: string}} week */
+export async function savePicks(week, password) {
   if (USE_MOCK) {
     await delay(600);
     if (password !== 'demo') {
       throw new Error('Wrong password (use "demo" in design mode)');
     }
-    return { updatedAt: new Date().toISOString(), picks };
+    return { ...week, updatedAt: new Date().toISOString() };
   }
 
   throw new Error('Live API not wired up yet');
