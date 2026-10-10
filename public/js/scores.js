@@ -1,12 +1,15 @@
-import { loadBoard } from './api.js';
+import { loadRound } from './api.js';
 import { leagueName } from './config.js';
 import { outcome, summarise } from './outcome.js';
-import { STATUS_STYLES, clockTime, crest, esc, kickoffTime, longDate, picker } from './ui.js';
+import { STATUS_STYLES, brand, clockTime, crest, dateRange, esc, kickoffTime, mountTabbar, picker, statusPill } from './ui.js';
 
 const LIVE_REFRESH_MS = 60_000;
 const IDLE_REFRESH_MS = 5 * 60_000;
 
 const $ = (id) => document.getElementById(id);
+
+// /round/12 → 12, anything else → latest
+const requested = location.pathname.match(/^\/round\/(\d+)/)?.[1] ?? 'latest';
 
 let timer;
 
@@ -15,20 +18,30 @@ async function refresh() {
   $('refresh-icon').classList.add('animate-spin');
 
   try {
-    const { picks, events, theGuy } = await loadBoard();
+    const data = await loadRound(requested);
+
+    if (!data) {
+      renderEmpty();
+      return;
+    }
+
+    const { round, picks, events, prev, next } = data;
     const rows = picks.map((pick) => {
       const event = events.find((e) => e.id === pick.eventId);
       return { pick, event, result: outcome(event, pick.teamId) };
     });
-
     const summary = summarise(rows.map((r) => r.result));
 
-    renderSubtitle(rows, summary);
+    document.title = `Bets · Round ${round.number}`;
+    renderRoundHead(round, rows, summary, prev, next);
     renderSummary(summary);
-    renderGames(rows, theGuy);
-    $('updated').textContent = `Updated ${clockTime()} · refreshes automatically`;
+    $('games').innerHTML = rows.map((row) => gameCard(row, round.theGuy)).join('');
+    $('updated').textContent = round.status === 'complete' ? 'Round complete' : `Updated ${clockTime()} · refreshes automatically`;
 
-    timer = setTimeout(refresh, summary.live > 0 ? LIVE_REFRESH_MS : IDLE_REFRESH_MS);
+    // Finished rounds never change, so stop polling.
+    if (round.status !== 'complete') {
+      timer = setTimeout(refresh, summary.live > 0 ? LIVE_REFRESH_MS : IDLE_REFRESH_MS);
+    }
   } catch (error) {
     $('updated').textContent = `Couldn't load scores (${error.message}). Retrying in a minute.`;
     timer = setTimeout(refresh, LIVE_REFRESH_MS);
@@ -37,143 +50,161 @@ async function refresh() {
   }
 }
 
-function renderSubtitle(rows, summary) {
-  const dates = rows.map((r) => r.event?.kickoff).filter(Boolean).sort();
-  const range = dates.length ? [...new Set([dates[0], dates.at(-1)].map(longDate))].join(' – ') : 'No games set';
-  const live = summary.live ? ` · <span class="font-semibold text-rose-600 dark:text-rose-400">${summary.live} live</span>` : '';
+function renderRoundHead(round, rows, summary, prev, next) {
+  const kickoffs = rows.map((r) => r.event?.kickoff).filter(Boolean).sort();
+  const live = summary.live
+    ? ` · <span class="inline-flex items-center gap-1 font-semibold text-red-300"><span class="size-1.5 animate-pulse rounded-full bg-red-400"></span>${summary.live} live</span>`
+    : '';
 
-  $('subtitle').innerHTML = `${esc(range)}${live}`;
+  const arrow = (target, dir) => {
+    const path = dir === 'prev' ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6';
+    const label = dir === 'prev' ? 'Previous round' : 'Next round';
+    const icon = `<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
+    return target
+      ? `<a href="/round/${target}" aria-label="${label}" class="glass grid size-11 shrink-0 place-items-center rounded-full text-zinc-200 transition active:scale-90">${icon}</a>`
+      : `<span class="grid size-11 shrink-0 place-items-center rounded-full text-zinc-700" aria-hidden="true">${icon}</span>`;
+  };
+
+  $('round-head').innerHTML = `
+    ${arrow(prev, 'prev')}
+    <div class="min-w-0 text-center">
+      <p class="text-[11px] font-semibold tracking-[0.35em] text-zinc-500 uppercase">Round</p>
+      <h1 class="grad-win text-grad font-display text-6xl leading-none font-bold tracking-tight tabular">${round.number}</h1>
+      <p class="mt-1.5 text-sm text-zinc-400">${esc(dateRange(kickoffs[0], kickoffs.at(-1)))}${live}</p>
+    </div>
+    ${arrow(next, 'next')}`;
 }
 
 function renderSummary(summary) {
-  const { counts, total } = summary;
-
-  if (total === 0) {
-    $('summary').innerHTML = '';
-    return;
-  }
-
+  const { counts } = summary;
   const bar = segmentBar(summary);
 
   if (summary.allFinal) {
+    const good = summary.won * 2 >= summary.settledTotal;
+    const grad = good ? 'grad-win' : 'grad-lose';
+
     $('summary').innerHTML = `
-      <div class="rounded-2xl bg-slate-900 p-4 text-white shadow-lg dark:bg-white dark:text-slate-900">
-        <p class="text-xs font-semibold uppercase tracking-widest opacity-60">Full time</p>
-        <p class="mt-1 text-4xl font-black tracking-tight tabular">${summary.won} <span class="text-xl font-bold opacity-60">of ${summary.settledTotal} won</span></p>
-        <div class="mt-3">${bar}</div>
-        <p class="mt-2 text-xs opacity-70">${counts.drawing} drew · ${counts.losing} lost${counts.void ? ` · ${counts.void} void` : ''}</p>
+      <div class="glass ${good ? 'glow-win' : 'glow-lose'} relative overflow-hidden rounded-3xl p-5">
+        <div class="${grad} absolute -top-24 -right-20 size-56 rounded-full opacity-25 blur-3xl"></div>
+        <p class="text-[11px] font-semibold tracking-[0.3em] text-zinc-400 uppercase">Full time</p>
+        <p class="mt-1 font-display font-bold tracking-tight">
+          <span class="${grad} text-grad text-6xl tabular">${summary.won}</span>
+          <span class="text-2xl text-zinc-400">of ${summary.settledTotal} won</span>
+        </p>
+        <div class="mt-4">${bar}</div>
+        <p class="mt-2.5 text-xs text-zinc-400">${counts.drawing} drew · ${counts.losing} lost${counts.void ? ` · ${counts.void} void` : ''}</p>
       </div>`;
     return;
   }
 
   const tile = (key) => {
     const style = STATUS_STYLES[key];
+    const value = counts[key];
     return `
-      <div class="rounded-xl bg-white p-3 text-center ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-        <p class="text-3xl font-black tabular ${counts[key] ? style.text : 'text-slate-300 dark:text-slate-700'}">${counts[key]}</p>
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">${style.label}</p>
+      <div class="glass relative overflow-hidden rounded-2xl px-2 py-3 text-center">
+        <span class="${style.grad} absolute inset-x-4 top-0 h-px opacity-80"></span>
+        ${value ? `<span class="${style.grad} absolute -top-10 left-1/2 size-20 -translate-x-1/2 rounded-full opacity-20 blur-2xl"></span>` : ''}
+        <p class="relative font-display text-4xl font-bold tabular ${value ? `${style.grad} text-grad` : 'text-zinc-700'}">${value}</p>
+        <p class="relative text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">${style.label}</p>
       </div>`;
   };
 
-  const extras = [
-    counts.pending && `${counts.pending} not started`,
-    counts.void && `${counts.void} void`,
-  ].filter(Boolean);
+  const extras = [counts.pending && `${counts.pending} to play`, counts.void && `${counts.void} void`].filter(Boolean);
 
   $('summary').innerHTML = `
     <div class="grid grid-cols-3 gap-2">${tile('winning')}${tile('drawing')}${tile('losing')}</div>
-    <div class="mt-2 flex items-center gap-3">
+    <div class="mt-3 flex items-center gap-3">
       <div class="flex-1">${bar}</div>
-      <p class="shrink-0 text-xs text-slate-500 dark:text-slate-400">${extras.join(' · ') || `${total} games`}</p>
+      ${extras.length ? `<p class="shrink-0 text-xs text-zinc-500">${extras.join(' · ')}</p>` : ''}
     </div>`;
 }
 
-/** One segment per game, ordered best to worst, so the bar reads like a progress meter. */
+/** One segment per game, ordered best to worst, so the bar reads like a meter. */
 function segmentBar({ counts }) {
-  const order = ['winning', 'drawing', 'losing', 'pending', 'void'];
-  const segments = order.flatMap((key) => Array(counts[key]).fill(key));
+  const segments = ['winning', 'drawing', 'losing', 'pending', 'void'].flatMap((key) => Array(counts[key]).fill(key));
 
-  return `<div class="flex h-2 gap-1" role="img" aria-label="${segments.join(', ')}">${segments
-    .map((key) => `<span class="flex-1 rounded-full ${STATUS_STYLES[key].bg}"></span>`)
+  return `<div class="flex h-1.5 gap-1" role="img" aria-label="${segments.join(', ')}">${segments
+    .map((key) => `<span class="${STATUS_STYLES[key].grad} flex-1 rounded-full"></span>`)
     .join('')}</div>`;
 }
 
-function renderGames(rows, theGuy) {
-  if (rows.length === 0) {
-    $('games').innerHTML = `
-      <div class="rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center text-slate-500 md:col-span-2 dark:border-slate-800">
-        <p class="text-3xl">⚽</p>
-        <p class="mt-2 font-semibold">No games picked yet</p>
-        <p class="text-sm">Check back once this week's bets are in.</p>
-      </div>`;
-    return;
-  }
-
-  $('games').innerHTML = rows.map((row) => gameCard(row, theGuy)).join('');
+function renderEmpty() {
+  $('round-head').innerHTML = '';
+  $('summary').innerHTML = '';
+  $('updated').textContent = '';
+  $('games').innerHTML = `
+    <div class="glass rounded-3xl p-10 text-center md:col-span-2">
+      <p class="text-4xl">⚽</p>
+      <p class="mt-3 font-display text-lg font-bold">No rounds yet</p>
+      <p class="mt-1 text-sm text-zinc-400">Check back once the first bets are in.</p>
+    </div>`;
 }
 
 function gameCard({ pick, event, result }, theGuy) {
   if (!event) {
-    return `<article class="rounded-2xl bg-white p-4 text-sm text-slate-500 ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">Game not found (${esc(pick.league)} · ${esc(pick.date)})</article>`;
+    return `<article class="glass rounded-3xl p-4 text-sm text-zinc-400">Game not found (${esc(pick.league)})</article>`;
   }
 
   const style = STATUS_STYLES[result.status];
-  const label = result.final ? style.finalLabel : style.label;
+  const inPlay = event.state === 'in';
   const showScore = event.state !== 'pre' && !event.postponed;
 
   const teamRow = (team) => {
-    const picked = team.id === pick.teamId;
+    const backed = team.id === pick.teamId;
     return `
-      <div class="flex items-center gap-3 ${picked ? '' : 'opacity-60'}">
+      <div class="flex items-center gap-3">
         ${crest(team)}
-        <p class="min-w-0 flex-1 truncate ${picked ? 'font-bold' : 'font-medium'}">
+        <p class="min-w-0 flex-1 truncate ${backed ? 'font-semibold text-white' : 'text-zinc-400'}">
           ${esc(team.name)}
-          ${picked ? '<span class="ml-1 rounded bg-slate-900 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wider text-white dark:bg-white dark:text-slate-900">Pick</span>' : ''}
+          ${backed ? '<span class="ml-1 rounded-md bg-white/10 px-1.5 py-0.5 align-middle text-[10px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
         </p>
-        <p class="w-8 text-right text-2xl font-black tabular">${showScore ? esc(team.score) : ''}</p>
+        <p class="w-8 text-right font-display text-3xl font-bold tabular ${backed ? 'text-white' : 'text-zinc-500'}">${showScore ? esc(team.score) : ''}</p>
       </div>`;
   };
 
   return `
-    <article class="relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-      <span class="absolute inset-y-0 left-0 w-1.5 ${style.bg}" aria-hidden="true"></span>
-      <div class="flex items-center justify-between gap-2 px-4 pt-3 pl-5">
+    <article class="glass ${inPlay ? style.glow : ''} relative overflow-hidden rounded-3xl">
+      <span class="${style.grad} absolute inset-x-0 top-0 h-1" aria-hidden="true"></span>
+      ${style.grad !== 'grad-muted' ? `<span class="${style.grad} pointer-events-none absolute -top-16 -right-16 size-40 rounded-full opacity-[0.12] blur-3xl" aria-hidden="true"></span>` : ''}
+      <div class="relative flex items-center justify-between gap-2 px-4 pt-4">
         ${picker(pick.picker, pick.picker === theGuy)}
-        <span class="text-xs">${statusChip(event)}</span>
+        ${statusChip(event)}
       </div>
-      <div class="space-y-2.5 px-4 py-3 pl-5">
+      <div class="relative space-y-2.5 px-4 py-4">
         ${teamRow(event.home)}
         ${teamRow(event.away)}
       </div>
-      <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-4 py-2 pl-5 dark:border-slate-800">
-        <p class="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">${esc(leagueName(event.league))}</p>
-        <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${style.soft}">
-          <span class="size-1.5 rounded-full ${style.bg}"></span>${label}
-        </span>
+      <div class="relative flex items-center justify-between gap-2 border-t border-white/[0.06] px-4 py-2.5">
+        <p class="truncate text-[11px] font-semibold tracking-wider text-zinc-500 uppercase">${esc(leagueName(event.league))}</p>
+        ${statusPill(result)}
       </div>
     </article>`;
 }
 
 function statusChip(event) {
+  const base = 'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold';
+
   if (event.postponed) {
-    return '<span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">Postponed</span>';
+    return `<span class="${base} bg-white/5 text-zinc-400">Postponed</span>`;
   }
 
   if (event.state === 'in') {
     return `
-      <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-500/10 px-2 py-0.5 font-bold text-rose-600 dark:text-rose-400">
-        <span class="relative flex size-2"><span class="absolute inline-flex size-full animate-ping rounded-full bg-rose-500 opacity-75"></span><span class="relative inline-flex size-2 rounded-full bg-rose-500"></span></span>
+      <span class="${base} bg-red-500/15 text-red-200 ring-1 ring-red-400/30">
+        <span class="relative flex size-2"><span class="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex size-2 rounded-full bg-red-400"></span></span>
         ${esc(event.detail)}
       </span>`;
   }
 
   if (event.state === 'post') {
-    return `<span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">${esc(event.detail || 'FT')}</span>`;
+    return `<span class="${base} bg-white/5 text-zinc-300">${esc(event.detail || 'FT')}</span>`;
   }
 
-  return `<span class="shrink-0 font-semibold text-slate-600 tabular dark:text-slate-300">${esc(kickoffTime(event.kickoff))}</span>`;
+  return `<span class="${base} bg-white/5 text-zinc-300 tabular">${esc(kickoffTime(event.kickoff))}</span>`;
 }
 
+$('brand').innerHTML = brand();
+mountTabbar('live');
 $('refresh').addEventListener('click', refresh);
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && refresh());
 

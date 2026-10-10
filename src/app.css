@@ -2,25 +2,105 @@
 
 @source "../public";
 
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("/fonts/space-grotesk-latin-wght-normal.woff2") format("woff2");
+}
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --color-win: var(--color-emerald-500);
-  --color-draw: var(--color-amber-400);
-  --color-lose: var(--color-rose-500);
-  --color-pending: var(--color-slate-400);
+  /* Near-black canvas and glass surfaces */
+  --color-ink: #050706;
+  --color-surface: rgb(255 255 255 / 0.035);
+  --color-line: rgb(255 255 255 / 0.08);
+
+  /* Highlight families — matched brightness so they sit together */
+  --color-win-from: #a3e635;
+  --color-win-via: #34d399;
+  --color-win-to: #059669;
+  --color-draw-from: #fde047;
+  --color-draw-to: #f59e0b;
+  --color-guy-from: #fdba74;
+  --color-guy-to: #f97316;
+  --color-lose-from: #fb7185;
+  --color-lose-to: #dc2626;
 }
 
 @layer base {
   html {
+    color-scheme: dark;
     -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    @apply min-h-dvh bg-slate-100 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+    @apply min-h-dvh bg-ink font-sans text-zinc-100 antialiased;
+    background-image:
+      radial-gradient(60rem 30rem at 50% -12rem, rgb(16 185 129 / 0.22), transparent 70%),
+      radial-gradient(40rem 24rem at 110% 10%, rgb(163 230 53 / 0.07), transparent 70%);
+    background-attachment: fixed;
+  }
+
+  select,
+  input {
+    color-scheme: dark;
   }
 }
 
 @utility tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Gradient fills */
+@utility grad-win {
+  background-image: linear-gradient(135deg, var(--color-win-from), var(--color-win-via) 50%, var(--color-win-to));
+}
+@utility grad-draw {
+  background-image: linear-gradient(135deg, var(--color-draw-from), var(--color-draw-to));
+}
+@utility grad-lose {
+  background-image: linear-gradient(135deg, var(--color-lose-from), var(--color-lose-to));
+}
+@utility grad-guy {
+  background-image: linear-gradient(135deg, var(--color-guy-from), var(--color-guy-to));
+}
+@utility grad-muted {
+  background-image: linear-gradient(135deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.06));
+}
+
+/* Gradient text: pair with a grad-* utility */
+@utility text-grad {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Frosted card with a hairline border */
+@utility glass {
+  background-color: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-line), 0 1px 0 0 rgb(255 255 255 / 0.04) inset;
+  backdrop-filter: blur(16px);
+}
+
+/* Soft coloured glow used behind live / highlighted cards */
+@utility glow-win {
+  box-shadow: 0 0 0 1px rgb(52 211 153 / 0.35), 0 10px 40px -12px rgb(16 185 129 / 0.55);
+}
+@utility glow-draw {
+  box-shadow: 0 0 0 1px rgb(250 204 21 / 0.3), 0 10px 40px -12px rgb(245 158 11 / 0.45);
+}
+@utility glow-lose {
+  box-shadow: 0 0 0 1px rgb(251 113 133 / 0.3), 0 10px 40px -12px rgb(220 38 38 / 0.45);
 }

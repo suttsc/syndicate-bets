@@ -15,7 +15,7 @@ Chris, Jamie, Paul and Steve each back one team to win per **round** (a round ca
 | Database | **Cloudflare D1** (SQLite), binding `DB` | Free (5 GB, 5M reads/day, 100k writes/day); keeps every round. Replaces the earlier KV idea, which could only hold the current round |
 | Scores | **ESPN public API**, called server-side with ~30 s edge cache | Free, no key, covers all needed leagues; unofficial, so isolated in one module |
 | Admin auth | `ADMIN_PASSWORD` secret, sent as `Authorization: Bearer …`, constant-time compare | Simple, nothing exposed to visitors |
-| Design | Mobile-first, light + dark (follows device) | Mostly viewed on phones |
+| Design | Mobile-first, **dark only**: near-black canvas, green glow, glass cards. Gradients: green (win), yellow (draw), red (lose), orange (The Guy). Fonts Space Grotesk + Inter, **self-hosted** in `public/fonts` | Mostly viewed on phones; modern look |
 
 ## Concepts
 - **Person**: Chris, Jamie, Paul, Steve (list lives in `public/js/config.js` + validated server-side).
@@ -101,7 +101,7 @@ README.md                   setup + usage
 ```
 
 ## Phases
-1. **Frontend design** — *in progress.* Done: scores page, admin, pickers, The Guy. Next: rounds (header + ‹ › nav), history page, leaderboard page, bottom nav, new/edit round admin flow — all on mock data.
+1. **Frontend design** — *done (awaiting sign-off).* Dark gradient theme; Live page with round number + ‹ › nav; History; Table (leaderboard); bottom tab bar; admin with New round / Edit round, pickers and The Guy — all on mock data (11 past rounds + a live Round 12).
 2. **Backend** — D1 schema + migrations, Functions above, ESPN module, settling, validation + tests; switch `api.js` off mock mode.
 3. **Deploy** —
    1. Create GitHub repo, push.

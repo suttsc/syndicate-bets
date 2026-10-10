@@ -19,10 +19,11 @@ export const leagueName = (slug) => LEAGUES.find((l) => l.slug === slug)?.name ?
 
 // The syndicate. Each week every person backs one team and one of them is "The Guy".
 export const PEOPLE = [
-  { name: 'Chris', color: '#2563eb' },
-  { name: 'Jamie', color: '#db2777' },
-  { name: 'Paul', color: '#0d9488' },
-  { name: 'Steve', color: '#ea580c' },
+  // Avatar colours avoid the green / yellow / orange / red used for results and The Guy.
+  { name: 'Chris', color: '#3b82f6' },
+  { name: 'Jamie', color: '#d946ef' },
+  { name: 'Paul', color: '#8b5cf6' },
+  { name: 'Steve', color: '#06b6d4' },
 ];
 
 export const personColor = (name) => PEOPLE.find((p) => p.name === name)?.color ?? '#64748b';
