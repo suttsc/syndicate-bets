@@ -61,8 +61,8 @@ function renderRoundHead(round, rows, summary, prev, next) {
     const label = dir === 'prev' ? 'Previous round' : 'Next round';
     const icon = `<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
     return target
-      ? `<a href="/round/${target}" aria-label="${label}" class="glass grid size-11 shrink-0 place-items-center rounded-full text-zinc-200 transition active:scale-90">${icon}</a>`
-      : `<span class="grid size-11 shrink-0 place-items-center rounded-full text-zinc-700" aria-hidden="true">${icon}</span>`;
+      ? `<a href="/round/${target}" aria-label="${label}" class="glass grid size-11 shrink-0 place-items-center rounded-xs text-zinc-200 transition active:scale-90">${icon}</a>`
+      : `<span class="grid size-11 shrink-0 place-items-center rounded-xs text-zinc-700" aria-hidden="true">${icon}</span>`;
   };
 
   $('round-head').innerHTML = `
@@ -84,7 +84,7 @@ function renderSummary(summary) {
     const grad = good ? 'grad-win' : 'grad-lose';
 
     $('summary').innerHTML = `
-      <div class="glass ${good ? 'glow-win' : 'glow-lose'} relative overflow-hidden rounded-3xl p-5">
+      <div class="glass ${good ? 'glow-win' : 'glow-lose'} relative overflow-hidden rounded-xs p-5">
         <div class="${grad} absolute -top-24 -right-20 size-56 rounded-full opacity-25 blur-3xl"></div>
         <p class="text-[11px] font-semibold tracking-[0.3em] text-zinc-400 uppercase">Full time</p>
         <p class="mt-1 font-display font-bold tracking-tight">
@@ -101,8 +101,7 @@ function renderSummary(summary) {
     const style = STATUS_STYLES[key];
     const value = counts[key];
     return `
-      <div class="glass relative overflow-hidden rounded-2xl px-2 py-3 text-center">
-        <span class="${style.grad} absolute inset-x-4 top-0 h-px opacity-80"></span>
+      <div class="glass relative overflow-hidden rounded-xs px-2 py-3 text-center">
         ${value ? `<span class="${style.grad} absolute -top-10 left-1/2 size-20 -translate-x-1/2 rounded-full opacity-20 blur-2xl"></span>` : ''}
         <p class="relative font-display text-4xl font-bold tabular ${value ? `${style.grad} text-grad` : 'text-zinc-700'}">${value}</p>
         <p class="relative text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">${style.label}</p>
@@ -124,7 +123,7 @@ function segmentBar({ counts }) {
   const segments = ['winning', 'drawing', 'losing', 'pending', 'void'].flatMap((key) => Array(counts[key]).fill(key));
 
   return `<div class="flex h-1.5 gap-1" role="img" aria-label="${segments.join(', ')}">${segments
-    .map((key) => `<span class="${STATUS_STYLES[key].grad} flex-1 rounded-full"></span>`)
+    .map((key) => `<span class="${STATUS_STYLES[key].grad} flex-1 rounded-xs"></span>`)
     .join('')}</div>`;
 }
 
@@ -133,7 +132,7 @@ function renderEmpty() {
   $('summary').innerHTML = '';
   $('updated').textContent = '';
   $('games').innerHTML = `
-    <div class="glass rounded-3xl p-10 text-center md:col-span-2">
+    <div class="glass rounded-xs p-10 text-center md:col-span-2">
       <p class="text-4xl">⚽</p>
       <p class="mt-3 font-display text-lg font-bold">No rounds yet</p>
       <p class="mt-1 text-sm text-zinc-400">Check back once the first bets are in.</p>
@@ -142,11 +141,10 @@ function renderEmpty() {
 
 function gameCard({ pick, event, result }, theGuy) {
   if (!event) {
-    return `<article class="glass rounded-3xl p-4 text-sm text-zinc-400">Game not found (${esc(pick.league)})</article>`;
+    return `<article class="glass rounded-xs p-4 text-sm text-zinc-400">Game not found (${esc(pick.league)})</article>`;
   }
 
   const style = STATUS_STYLES[result.status];
-  const inPlay = event.state === 'in';
   const showScore = event.state !== 'pre' && !event.postponed;
 
   const teamRow = (team) => {
@@ -156,15 +154,14 @@ function gameCard({ pick, event, result }, theGuy) {
         ${crest(team)}
         <p class="min-w-0 flex-1 truncate ${backed ? 'font-semibold text-white' : 'text-zinc-400'}">
           ${esc(team.name)}
-          ${backed ? '<span class="ml-1 rounded-md bg-white/10 px-1.5 py-0.5 align-middle text-[10px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
+          ${backed ? '<span class="ml-1 rounded-xs bg-white/10 px-1.5 py-0.5 align-middle text-[10px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
         </p>
         <p class="w-8 text-right font-display text-3xl font-bold tabular ${backed ? 'text-white' : 'text-zinc-500'}">${showScore ? esc(team.score) : ''}</p>
       </div>`;
   };
 
   return `
-    <article class="glass ${inPlay ? style.glow : ''} relative overflow-hidden rounded-3xl">
-      <span class="${style.grad} absolute inset-x-0 top-0 h-1" aria-hidden="true"></span>
+    <article class="glass ${style.glow} relative overflow-hidden rounded-xs">
       ${style.grad !== 'grad-muted' ? `<span class="${style.grad} pointer-events-none absolute -top-16 -right-16 size-40 rounded-full opacity-[0.12] blur-3xl" aria-hidden="true"></span>` : ''}
       <div class="relative flex items-center justify-between gap-2 px-4 pt-4">
         ${picker(pick.picker, pick.picker === theGuy)}
@@ -182,7 +179,7 @@ function gameCard({ pick, event, result }, theGuy) {
 }
 
 function statusChip(event) {
-  const base = 'inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold';
+  const base = 'inline-flex shrink-0 items-center gap-1.5 rounded-xs px-2.5 py-1 text-xs font-bold';
 
   if (event.postponed) {
     return `<span class="${base} bg-white/5 text-zinc-400">Postponed</span>`;

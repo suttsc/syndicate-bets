@@ -14,7 +14,7 @@ const storage = {
 /** @type {{mode: 'new'|'edit', latest: null|{round: object, picks: Array, events: Array}, theGuy: string|null, slots: Array}} */
 const state = { mode: 'new', latest: null, theGuy: null, slots: [] };
 
-const FIELD = 'mt-2 block h-12 w-full rounded-xl border-0 bg-white/5 px-3 text-base text-white ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-emerald-400';
+const FIELD = 'mt-2 block h-12 w-full rounded-xs border-0 bg-white/5 px-3 text-base text-white ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-emerald-400';
 const LABEL = 'text-[11px] font-semibold tracking-wider text-zinc-400 uppercase';
 
 function nextSaturday() {
@@ -71,7 +71,7 @@ function personButtons({ selected, attrs, dimmed = [], activeClass = '', activeS
     const active = name === selected;
     return `
       <button type="button" ${attrs(name)} aria-pressed="${active}"
-        class="h-11 rounded-xl text-sm font-bold transition active:scale-95 ${active ? `text-white shadow-lg ${activeClass}` : 'bg-white/5 text-zinc-300 ring-1 ring-white/10'} ${!active && dimmed.includes(name) ? 'opacity-35' : ''}"
+        class="h-11 rounded-xs text-sm font-bold transition active:scale-95 ${active ? `text-white shadow-lg ${activeClass}` : 'bg-white/5 text-zinc-300 ring-1 ring-white/10'} ${!active && dimmed.includes(name) ? 'opacity-35' : ''}"
         ${active ? `style="${activeStyle(name)}"` : ''}>${name}</button>`;
   }).join('');
 }
@@ -83,7 +83,7 @@ function render() {
 
   const tab = (mode, label, disabled = false) => `
     <button type="button" role="tab" data-mode="${mode}" aria-selected="${state.mode === mode}" ${disabled ? 'disabled' : ''}
-      class="h-11 rounded-xl font-display text-sm font-bold transition disabled:opacity-30 ${state.mode === mode ? 'grad-win text-black shadow-[0_6px_24px_-8px_rgb(16_185_129/0.8)]' : 'text-zinc-400'}">${label}</button>`;
+      class="h-11 rounded-xs font-display text-sm font-bold transition disabled:opacity-30 ${state.mode === mode ? 'grad-win text-black shadow-[0_6px_24px_-8px_rgb(16_185_129/0.8)]' : 'text-zinc-400'}">${label}</button>`;
   $('mode').innerHTML = tab('new', `New round ${nextNumber()}`) + tab('edit', latest ? `Edit round ${latest.number}` : 'Edit round', !latest);
 
   $('the-guy').innerHTML = personButtons({
@@ -109,9 +109,9 @@ function slotCard(slot, index) {
 
   let matchControl;
   if (slot.loading) {
-    matchControl = '<div class="mt-2 h-12 animate-pulse rounded-xl bg-white/5"></div>';
+    matchControl = '<div class="mt-2 h-12 animate-pulse rounded-xs bg-white/5"></div>';
   } else if (slot.fixtures?.length === 0) {
-    matchControl = `<p class="mt-2 rounded-xl bg-white/5 px-3 py-3.5 text-sm text-zinc-500">No games on ${esc(shortDate(slot.date))}</p>`;
+    matchControl = `<p class="mt-2 rounded-xs bg-white/5 px-3 py-3.5 text-sm text-zinc-500">No games on ${esc(shortDate(slot.date))}</p>`;
   } else {
     matchControl = `
       <select data-field="eventId" data-index="${index}" class="${FIELD}">
@@ -126,18 +126,17 @@ function slotCard(slot, index) {
     const active = team.id === slot.teamId;
     return `
       <button type="button" data-team="${esc(team.id)}" data-index="${index}" aria-pressed="${active}"
-        class="flex min-h-14 items-center gap-2 rounded-xl p-2 text-left text-sm font-semibold transition active:scale-[.98] ${active ? 'bg-emerald-400/10 ring-2 ring-emerald-400' : 'bg-white/5 ring-1 ring-white/10'}">
+        class="flex min-h-14 items-center gap-2 rounded-xs p-2 text-left text-sm font-semibold transition active:scale-[.98] ${active ? 'bg-emerald-400/10 ring-2 ring-emerald-400' : 'bg-white/5 ring-1 ring-white/10'}">
         ${crest(team, 'size-8')}<span class="min-w-0 flex-1 leading-tight">${esc(team.name)}</span>
         ${active ? '<svg class="size-5 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>' : ''}
       </button>`;
   };
 
   return `
-    <li class="glass relative overflow-hidden rounded-3xl p-4">
-      ${isReady(slot) ? '<span class="grad-win absolute inset-x-0 top-0 h-0.5"></span>' : ''}
+    <li class="glass relative overflow-hidden rounded-xs p-4">
       <div class="flex items-center justify-between">
         <h2 class="font-display font-bold">Game ${index + 1}</h2>
-        <button type="button" data-remove="${index}" class="-mr-2 rounded-lg px-2 py-1 text-sm font-semibold text-rose-400 active:bg-rose-500/10">Remove</button>
+        <button type="button" data-remove="${index}" class="-mr-2 rounded-xs px-2 py-1 text-sm font-semibold text-rose-400 active:bg-rose-500/10">Remove</button>
       </div>
 
       <fieldset class="mt-2">

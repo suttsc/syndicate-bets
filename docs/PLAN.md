@@ -15,7 +15,7 @@ Chris, Jamie, Paul and Steve each back one team to win per **round** (a round ca
 | Database | **Cloudflare D1** (SQLite), binding `DB` | Free (5 GB, 5M reads/day, 100k writes/day); keeps every round. Replaces the earlier KV idea, which could only hold the current round |
 | Scores | **ESPN public API**, called server-side with ~30 s edge cache | Free, no key, covers all needed leagues; unofficial, so isolated in one module |
 | Admin auth | `ADMIN_PASSWORD` secret, sent as `Authorization: Bearer …`, constant-time compare | Simple, nothing exposed to visitors |
-| Design | Mobile-first, **dark only**: near-black canvas, green glow, glass cards. Gradients: green (win), yellow (draw), red (lose), orange (The Guy). Fonts Space Grotesk + Inter, **self-hosted** in `public/fonts` | Mostly viewed on phones; modern look |
+| Design | Mobile-first, **dark only**: near-black canvas, green glow, glass cards with sharp 2px corners; results shown by a coloured glow (no top strips). Gradients: green (win), yellow (draw), red (lose), orange (The Guy). Fonts Space Grotesk + Inter, **self-hosted** in `public/fonts` | Mostly viewed on phones; modern look |
 
 ## Concepts
 - **Person**: Chris, Jamie, Paul, Steve (list lives in `public/js/config.js` + validated server-side).

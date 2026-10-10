@@ -13,7 +13,7 @@ function roundRow(round) {
   const dots = round.results.map((r) => resultDot(r.status, r.picker[0])).join('');
 
   return `
-    <a href="/round/${round.number}" class="glass relative flex items-center gap-4 overflow-hidden rounded-3xl p-4 transition active:scale-[0.99]">
+    <a href="/round/${round.number}" class="glass relative flex items-center gap-4 overflow-hidden rounded-xs p-4 transition active:scale-[0.99]">
       ${open ? '<span class="grad-win absolute inset-y-0 left-0 w-1"></span>' : ''}
       <div class="w-14 shrink-0 text-center">
         <p class="text-[10px] font-semibold tracking-[0.25em] text-zinc-500 uppercase">Rnd</p>
@@ -28,7 +28,7 @@ function roundRow(round) {
       </div>
       <div class="shrink-0 text-right">
         ${open
-          ? '<span class="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 px-2.5 py-1 text-xs font-bold text-red-200 ring-1 ring-red-400/30"><span class="size-1.5 animate-pulse rounded-full bg-red-400"></span>Live</span>'
+          ? '<span class="inline-flex items-center gap-1.5 rounded-xs bg-red-500/15 px-2.5 py-1 text-xs font-bold text-red-200 ring-1 ring-red-400/30"><span class="size-1.5 animate-pulse rounded-full bg-red-400"></span>Live</span>'
           : `<p class="font-display text-3xl leading-none font-bold tabular"><span class="${good ? 'grad-win' : 'grad-lose'} text-grad">${won}</span><span class="text-lg text-zinc-500">/${settled.length}</span></p>
              <p class="mt-1 text-[11px] text-zinc-500">won</p>`}
       </div>
@@ -43,7 +43,7 @@ async function init() {
 
   $('content').innerHTML = rounds.length
     ? rounds.map(roundRow).join('')
-    : '<div class="glass rounded-3xl p-10 text-center text-zinc-400">No rounds yet.</div>';
+    : '<div class="glass rounded-xs p-10 text-center text-zinc-400">No rounds yet.</div>';
 }
 
 init();

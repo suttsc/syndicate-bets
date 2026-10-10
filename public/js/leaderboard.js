@@ -9,7 +9,7 @@ function row(person, position) {
   const leader = position === 1;
 
   return `
-    <li class="glass ${leader ? 'glow-win' : ''} relative overflow-hidden rounded-3xl p-4">
+    <li class="glass ${leader ? 'glow-win' : ''} relative overflow-hidden rounded-xs p-4">
       ${leader ? '<span class="grad-win pointer-events-none absolute -top-20 -left-16 size-48 rounded-full opacity-20 blur-3xl"></span>' : ''}
       <div class="relative flex items-center gap-3">
         <p class="w-6 shrink-0 text-center font-display text-lg font-bold ${leader ? 'grad-win text-grad' : 'text-zinc-500'}">${position}</p>
