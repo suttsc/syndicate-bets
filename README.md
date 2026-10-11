@@ -81,7 +81,7 @@ npm test
 Then push any commit (or *Deployments* → *Retry build*) to deploy. Every push to `main` redeploys.
 
 If the build log shows the migration step failing on permissions, create the tables by hand once:
-*D1* → `syndicate-bets` → *Console* → paste `migrations/0001_init.sql` → *Execute*, and set the deploy
+*D1* → `syndicate-bets` → *Console* → paste `migrations/0001_initial_schema.sql` → *Execute*, and set the deploy
 command to `npx wrangler deploy`.
 
 ## Changing people or leagues

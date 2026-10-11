@@ -23,30 +23,37 @@ Chris, Jamie, Paul and Steve each back one team to win per **round** (a round ca
 - **Pick**: belongs to a round; who picked, league, ESPN event ID, team backed (+ names/crests/kick-off snapshot). Once the game ends: final score + result (`won` / `drew` / `lost` / `void`) are **frozen in D1**, so old rounds never depend on ESPN again.
 - **Live status** (not stored): `pending` / `winning` / `drawing` / `losing` / `void`, from `outcome()`.
 
-## Data model (D1, `migrations/0001_init.sql`)
+## Data model (D1, `migrations/0001_initial_schema.sql`)
 ```sql
-CREATE TABLE rounds (
+CREATE TABLE IF NOT EXISTS rounds (
   id         INTEGER PRIMARY KEY,
-  number     INTEGER NOT NULL UNIQUE,
+  season     TEXT    NOT NULL,
+  number     INTEGER NOT NULL,
   the_guy    TEXT    NOT NULL,
-  status     TEXT    NOT NULL DEFAULT 'open',   -- open | complete
-  created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+  status     TEXT    NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'complete')),
+  created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT    NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (season, number)
 );
 
-CREATE TABLE picks (
-  id          INTEGER PRIMARY KEY,
-  round_id    INTEGER NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
-  picker      TEXT    NOT NULL,
-  league      TEXT    NOT NULL,
-  event_id    TEXT    NOT NULL,
-  team_id     TEXT    NOT NULL,
-  snapshot    TEXT    NOT NULL,   -- JSON: home/away names, abbr, logos, kickoff
-  home_score  INTEGER,            -- set when final
-  away_score  INTEGER,
-  result      TEXT,               -- won | drew | lost | void, set when final
-  settled_at  TEXT
+-- A pick backs one team to win. Final score + result are frozen once the game ends,
+-- so finished rounds never depend on ESPN again.
+CREATE TABLE IF NOT EXISTS picks (
+  id         INTEGER PRIMARY KEY,
+  round_id   INTEGER NOT NULL REFERENCES rounds (id) ON DELETE CASCADE,
+  position   INTEGER NOT NULL,
+  picker     TEXT    NOT NULL,
+  league     TEXT    NOT NULL,
+  event_id   TEXT    NOT NULL,
+  team_id    TEXT    NOT NULL,
+  snapshot   TEXT    NOT NULL, -- JSON: teams, crests and kick-off at the time of picking
+  home_score INTEGER,
+  away_score INTEGER,
+  result     TEXT CHECK (result IN ('won', 'drew', 'lost', 'void')),
+  settled_at TEXT
 );
-CREATE INDEX picks_round ON picks(round_id);
+
+CREATE INDEX IF NOT EXISTS picks_round ON picks (round_id, position);
 ```
 
 ## Settling results (no cron needed)
@@ -63,7 +70,7 @@ When `GET /api/rounds/:n` runs, unsettled picks are refreshed from ESPN; any tha
 | `GET /api/leaderboard` | – | Per-person all-time record from settled picks |
 
 ## Pages
-- **`/`** — latest round. **`/round/:n`** — a specific round (shareable; unknown paths fall back to `index.html`).
+- **`/`** — latest round. **`/round/2026-27/9`** — a specific round (shareable; unknown paths fall back to `index.html`).
   - Header "Round 12", date range ("Fri 17 – Mon 20 Oct"), live count, ‹ › arrows to previous/next round.
   - Sticky summary: Winning / Drawing / Losing tiles + per-game bar; "3 of 4 won" card when complete.
   - Game cards: picker (avatar + name + 👑 The Guy badge), teams with crests, score, live minute / FT / kick-off / Postponed, league + status badge.
@@ -95,80 +102,7 @@ src/server/
   lib/http.js               JSON helpers + HttpError
   lib/auth.js               bearer check
   lib/validate.js           payload validation
-migrations/0001_init.sql`)
-```sql
-CREATE TABLE rounds (
-  id         INTEGER PRIMARY KEY,
-  number     INTEGER NOT NULL UNIQUE,
-  the_guy    TEXT    NOT NULL,
-  status     TEXT    NOT NULL DEFAULT 'open',   -- open | complete
-  created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE picks (
-  id          INTEGER PRIMARY KEY,
-  round_id    INTEGER NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
-  picker      TEXT    NOT NULL,
-  league      TEXT    NOT NULL,
-  event_id    TEXT    NOT NULL,
-  team_id     TEXT    NOT NULL,
-  snapshot    TEXT    NOT NULL,   -- JSON: home/away names, abbr, logos, kickoff
-  home_score  INTEGER,            -- set when final
-  away_score  INTEGER,
-  result      TEXT,               -- won | drew | lost | void, set when final
-  settled_at  TEXT
-);
-CREATE INDEX picks_round ON picks(round_id);
-```
-
-## Settling results (no cron needed)
-When `GET /api/rounds/:n` runs, unsettled picks are refreshed from ESPN; any that are final get their score + result written to D1. When every pick in a round is settled, the round flips to `complete`. Old rounds are then served purely from D1.
-
-## API (Worker routes)
-| Method & path | Auth | Purpose |
-|---|---|---|
-| `GET /api/rounds` | – | History list: number, date range, The Guy, won / total, status |
-| `GET /api/rounds/latest` · `GET /api/rounds/:n` | – | Round + picks merged with live ESPN state; settles finished games |
-| `POST /api/rounds` | admin | Start a new round (next number) with The Guy + picks |
-| `PUT /api/rounds/:n` | admin | Edit a round's picks / The Guy |
-| `GET /api/fixtures?league=&date=` | – | ESPN scoreboard proxy for the admin match picker (league whitelist, 30 s cache) |
-| `GET /api/leaderboard` | – | Per-person all-time record from settled picks |
-
-## Pages
-- **`/`** — latest round. **`/round/:n`** — a specific round (shareable; unknown paths fall back to `index.html`).
-  - Header "Round 12", date range ("Fri 17 – Mon 20 Oct"), live count, ‹ › arrows to previous/next round.
-  - Sticky summary: Winning / Drawing / Losing tiles + per-game bar; "3 of 4 won" card when complete.
-  - Game cards: picker (avatar + name + 👑 The Guy badge), teams with crests, score, live minute / FT / kick-off / Postponed, league + status badge.
-  - Auto-refresh 60 s while live, 5 min otherwise, on tab focus, and manual button. Completed rounds don't poll.
-- **`/history`** — list of rounds, newest first: number, dates, The Guy, result dots + "3 of 4 won". Tap → `/round/:n`.
-- **`/leaderboard`** — per person: won / played, win %, drawn, lost, last-5 form dots; their record when they were The Guy.
-- **`/admin`** — password (remembered on device); mode switch **Start new round** / **Edit round N**; The Guy chooser; per game: Picked by → league → date → match → team; add/remove game; sticky "Save for everyone".
-- Shared bottom nav on public pages: **Live · History · Table**.
-
-## Project layout
-```
-public/
-  index.html  history.html  leaderboard.html  admin.html
-  assets/app.css            (built, git-ignored)
-  js/config.js              leagues, people
-  js/outcome.js             outcome() + summarise()  (pure, unit-tested)
-  js/ui.js                  escaping, crest, picker badge, formatting
-  js/api.js                 fetch wrappers for /api/*
-  js/mock-api.js            sample-data API (?mock)
-  js/mock-data.js           sample rounds
-  js/scores.js history.js leaderboard.js admin.js
-functions/
-  api/rounds/index.js       GET list, POST create
-  api/rounds/[number].js    GET (latest|n), PUT edit
-  api/_middleware.js        JSON error handling
-  _lib/rounds.js            D1 queries, settling, leaderboard
-  _lib/http.js              JSON helpers + HttpError
-  api/fixtures.js           ESPN proxy
-  api/leaderboard.js
-  _lib/espn.js              fetch + normalise ESPN events
-  _lib/auth.js              bearer check
-  _lib/validate.js          payload validation
-migrations/0001_init.sql
+migrations/0001_initial_schema.sql
 src/app.css                 Tailwind entry
 tests/                      node:test — outcome, validation, ESPN normalising
 wrangler.toml               Worker + assets (SPA fallback for /round/:n), D1 binding, CSS build step
@@ -186,7 +120,7 @@ README.md                   setup + usage
    4. Worker → Domains & Routes → custom domain `bets.chrissutton.co.uk`.
 
 ## Update: seasons, chosen round numbers, team search
-- `migrations/0002_seasons.sql` rebuilds `rounds` with `season` and `UNIQUE(season, number)`; existing rounds get the season of their first kick-off. Picks are copied before old tables are dropped, so nothing cascades.
+- Rounds have a `season` with `UNIQUE(season, number)`. (A table-rebuild migration for this caused problems on live, so the live tables were cleared and the schema is now a single fresh migration, `0001_initial_schema.sql`.)
 - Admin: New round / Edit a round (any round, via picker); season + round number fields; after the first save the form is bound to that round, so saving again updates it.
 - "Find a team" searches every supported league's fixtures on the game's date (one cached request per date) and fills league, match and backed team. Added National League and Scottish Championship / League One / League Two.
 - URLs `/round/2026-27/9`; History grouped by season; Table has season tabs + All time.

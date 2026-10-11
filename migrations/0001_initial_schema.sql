@@ -1,11 +1,20 @@
--- A round is one set of bets (one pick per person), possibly spanning several days.
+-- Syndicate Bets schema.
+-- A round is one set of bets (one pick per person), numbered within a football season
+-- ("2026/27", July → June), and may span several days.
+
+-- Leftovers from an earlier, abandoned migration.
+DROP TABLE IF EXISTS picks_new;
+DROP TABLE IF EXISTS rounds_new;
+
 CREATE TABLE IF NOT EXISTS rounds (
   id         INTEGER PRIMARY KEY,
-  number     INTEGER NOT NULL UNIQUE,
+  season     TEXT    NOT NULL,
+  number     INTEGER NOT NULL,
   the_guy    TEXT    NOT NULL,
   status     TEXT    NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'complete')),
   created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT    NOT NULL DEFAULT (datetime('now'))
+  updated_at TEXT    NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (season, number)
 );
 
 -- A pick backs one team to win. Final score + result are frozen once the game ends,
@@ -18,7 +27,7 @@ CREATE TABLE IF NOT EXISTS picks (
   league     TEXT    NOT NULL,
   event_id   TEXT    NOT NULL,
   team_id    TEXT    NOT NULL,
-  snapshot   TEXT    NOT NULL, -- JSON: normalised event at the time of picking (teams, crests, kickoff)
+  snapshot   TEXT    NOT NULL, -- JSON: teams, crests and kick-off at the time of picking
   home_score INTEGER,
   away_score INTEGER,
   result     TEXT CHECK (result IN ('won', 'drew', 'lost', 'void')),
