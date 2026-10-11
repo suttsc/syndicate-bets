@@ -19,8 +19,7 @@ run_worker_first = ["/api/*"]
 [[d1_databases]]
 binding = "DB"
 database_name = "syndicate-bets"
-# Replace with your D1 database id (see README → Deploying).
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "5ad524d2-9281-4c31-82f0-c646e5f41257"
 migrations_dir = "migrations"
 
 [observability]
