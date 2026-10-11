@@ -1,5 +1,5 @@
 -- A round is one set of bets (one pick per person), possibly spanning several days.
-CREATE TABLE rounds (
+CREATE TABLE IF NOT EXISTS rounds (
   id         INTEGER PRIMARY KEY,
   number     INTEGER NOT NULL UNIQUE,
   the_guy    TEXT    NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE rounds (
 
 -- A pick backs one team to win. Final score + result are frozen once the game ends,
 -- so finished rounds never depend on ESPN again.
-CREATE TABLE picks (
+CREATE TABLE IF NOT EXISTS picks (
   id         INTEGER PRIMARY KEY,
   round_id   INTEGER NOT NULL REFERENCES rounds (id) ON DELETE CASCADE,
   position   INTEGER NOT NULL,
@@ -25,4 +25,4 @@ CREATE TABLE picks (
   settled_at TEXT
 );
 
-CREATE INDEX picks_round ON picks (round_id, position);
+CREATE INDEX IF NOT EXISTS picks_round ON picks (round_id, position);

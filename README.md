@@ -1,6 +1,6 @@
 # Syndicate Bets
 
-Live scores for Chris, Jamie, Paul and Steve's football bets — **https://bets.chrisutton.co.uk**
+Live scores for Chris, Jamie, Paul and Steve's football bets — **https://bets.chrissutton.co.uk**
 
 Each **round** everyone backs one team to win and one person is **The Guy**. The site shows live → final
 scores, how many picks are winning / drawing / losing, every past round, and an all-time table.
@@ -72,7 +72,7 @@ npm test
    name `ADMIN_PASSWORD`. Secrets survive future deploys.
 
 5. **Add the domain** — Worker → *Settings* → *Domains & Routes* → *Add* → *Custom domain* →
-   `bets.chrisutton.co.uk` (chrisutton.co.uk must be a zone in this Cloudflare account).
+   `bets.chrissutton.co.uk` (chrissutton.co.uk must be a zone in this Cloudflare account).
 
 Then push any commit (or *Deployments* → *Retry build*) to deploy. Every push to `main` redeploys.
 

@@ -1,6 +1,6 @@
 # Football Bets — Plan
 
-Live site: **https://bets.chrisutton.co.uk**
+Live site: **https://bets.chrissutton.co.uk**
 
 ## Context
 Chris, Jamie, Paul and Steve each back one team to win per **round** (a round can span several days). One of them is **The Guy** each round. The site shows live → final scores from a free, no-key API and tallies how many picks are **winning / drawing / losing**. Everyone sees the same data; picks are entered through a password-protected admin page. Previous rounds stay viewable forever, with a history list and an all-time leaderboard.
@@ -9,7 +9,7 @@ Chris, Jamie, Paul and Steve each back one team to win per **round** (a round ca
 | Area | Choice | Why |
 |---|---|---|
 | Hosting | **Cloudflare Worker with static assets**, connected to `suttsc/syndicate-bets` (Workers Builds: auto-deploy on push to `main`) | Free; Cloudflare's recommended path (originally planned as Pages, switched when the dashboard created a Worker) |
-| Domain | `bets.chrisutton.co.uk` as a Worker custom domain | Needs chrisutton.co.uk as a zone in the Cloudflare account |
+| Domain | `bets.chrissutton.co.uk` as a Worker custom domain | Needs chrissutton.co.uk as a zone in the Cloudflare account |
 | Frontend | Plain HTML + ES-module JS, **Tailwind v4** built by its CLI (`npm run build`) | No framework needed; proper production CSS |
 | Backend | The same Worker: `src/server/index.js` routes `/api/*`; everything else is served from `public/` by asset handling | One deployable, no separate service |
 | Database | **Cloudflare D1** (SQLite), binding `DB` | Free (5 GB, 5M reads/day, 100k writes/day); keeps every round. Replaces the earlier KV idea, which could only hold the current round |
@@ -183,10 +183,10 @@ README.md                   setup + usage
    1. D1 → create `syndicate-bets`, put its id in `wrangler.toml`, push.
    2. Worker named `syndicate-bets` → Settings → Build → connect the repo; deploy command `npm run deploy` (migrations + deploy).
    3. Worker → Variables and Secrets → secret `ADMIN_PASSWORD`.
-   4. Worker → Domains & Routes → custom domain `bets.chrisutton.co.uk`.
+   4. Worker → Domains & Routes → custom domain `bets.chrissutton.co.uk`.
 
 ## Verification
 - `npm test` — outcome/summary, validation, ESPN normalisation.
 - Design phase: Playwright screenshots at 390 px (light + dark) and 1280 px for every page/state; no console errors.
 - Backend: `npx wrangler dev` with local D1 and a mocked ESPN response (sandbox can't reach ESPN): create round → view live → simulate full time → confirm frozen results, history and leaderboard.
-- After deploy: check bets.chrisutton.co.uk on two devices; create a real round; confirm everyone sees it and live scores tick.
+- After deploy: check bets.chrissutton.co.uk on two devices; create a real round; confirm everyone sees it and live scores tick.

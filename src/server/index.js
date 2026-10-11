@@ -45,7 +45,8 @@ export default {
         return json({ error: error.message }, { status: error.status });
       }
 
-      console.error(error);
+      // Message first so it shows as the log line's text in Cloudflare's dashboard.
+      console.error(`Unhandled error: ${error?.message}`, error?.stack);
       return json({ error: 'Something went wrong' }, { status: 500 });
     }
   },
