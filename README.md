@@ -9,9 +9,9 @@ scores, how many picks are winning / drawing / losing, every past round, and an 
 
 | | |
 |---|---|
-| Hosting | Cloudflare Pages (Git integration — every push to `main` deploys) |
+| Hosting | Cloudflare Worker with static assets (Git integration — every push to `main` deploys) |
 | Frontend | Plain HTML + ES modules, Tailwind CSS v4 (built by its CLI), self-hosted Space Grotesk + Inter |
-| Backend | Cloudflare Pages Functions (`functions/`) |
+| Backend | The same Worker (`src/server/`) — only `/api/*` requests run code; pages are served as static files |
 | Database | Cloudflare D1 (SQLite) — rounds, picks, frozen final results |
 | Scores | ESPN's public scoreboard API (free, no key), cached 30 s at the edge |
 
@@ -50,43 +50,35 @@ depend on ESPN again. A round flips to `complete` once every pick is settled.
 npm install
 cp .dev.vars.example .dev.vars      # set ADMIN_PASSWORD
 npm run db:migrate:local
-npm run preview                     # builds CSS, serves site + functions + local D1 on :8788
-npm run dev                         # (optional, second terminal) rebuild CSS on change
+npm run dev                         # builds CSS, serves site + API + local D1 on http://localhost:8787
+npm run dev:css                     # (optional, second terminal) rebuild CSS on change
 npm test
 ```
 
-## Deploying (one-off setup)
+## Deploying (one-off setup, all in the Cloudflare dashboard)
 
-1. **Create the database**
-   ```bash
-   npx wrangler login
-   npx wrangler d1 create syndicate-bets
-   ```
-   Copy the printed `database_id` into `wrangler.toml`, commit and push.
+1. **Create the database** — *Storage & databases* → *D1 SQL database* → *Create* → name it
+   `syndicate-bets`. Copy its **Database ID** into `database_id` in `wrangler.toml`, commit and push.
 
-2. **Create the tables**
-   ```bash
-   npm run db:migrate:remote
-   ```
+2. **Name the Worker `syndicate-bets`** — it must match `name` in `wrangler.toml`. Either create a
+   Worker with that name, or rename an existing one (*Settings* → *General* → *Name*).
 
-3. **Connect Cloudflare Pages to GitHub** — Cloudflare dashboard → *Workers & Pages* → *Create* →
-   *Pages* → *Connect to Git* → `suttsc/syndicate-bets`.
-   - Framework preset: *None*
-   - Build command: `npm run build`
-   - Build output directory: `public`
+3. **Connect GitHub** — Worker → *Settings* → *Build* → *Connect* → GitHub → `suttsc/syndicate-bets`,
+   branch `main`.
+   - Build command: *(leave empty — Wrangler builds the CSS itself)*
+   - Deploy command: `npm run deploy` (applies any new database migrations, then deploys)
 
-   The D1 binding (`DB`) is picked up from `wrangler.toml`.
+4. **Set the admin password** — Worker → *Settings* → *Variables and Secrets* → *Add* → type **Secret**,
+   name `ADMIN_PASSWORD`. Secrets survive future deploys.
 
-4. **Set the admin password** — Pages project → *Settings* → *Variables and Secrets* → add
-   `ADMIN_PASSWORD` as a **Secret** (Production, and Preview if you use preview URLs). Then
-   *Deployments* → *Retry deployment* so it takes effect.
+5. **Add the domain** — Worker → *Settings* → *Domains & Routes* → *Add* → *Custom domain* →
+   `bets.chrisutton.co.uk` (chrisutton.co.uk must be a zone in this Cloudflare account).
 
-5. **Add the domain** — Pages project → *Custom domains* → *Set up a domain* → `bets.chrisutton.co.uk`.
-   If chrisutton.co.uk's DNS is on Cloudflare this is automatic; otherwise add a `CNAME` record
-   `bets` → `syndicate-bets.pages.dev` at your DNS provider.
+Then push any commit (or *Deployments* → *Retry build*) to deploy. Every push to `main` redeploys.
 
-After that, every push to `main` redeploys. New migrations: add `migrations/000N_*.sql` and run
-`npm run db:migrate:remote`.
+If the build log shows the migration step failing on permissions, create the tables by hand once:
+*D1* → `syndicate-bets` → *Console* → paste `migrations/0001_init.sql` → *Execute*, and set the deploy
+command to `npx wrangler deploy`.
 
 ## Changing people or leagues
 
@@ -94,6 +86,6 @@ Both lists live in `public/js/config.js` (used by the pages and validated by the
 
 ## Notes
 
-- ESPN's API is unofficial. Everything ESPN-specific is in `functions/_lib/espn.js`; if it ever
+- ESPN's API is unofficial. Everything ESPN-specific is in `src/server/lib/espn.js`; if it ever
   changes, that's the only file to touch.
 - See `docs/PLAN.md` for the full plan and decisions.

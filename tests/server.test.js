@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
-import { addDays, normaliseEvent } from '../functions/_lib/espn.js';
-import { HttpError } from '../functions/_lib/http.js';
-import { resultFor } from '../functions/_lib/rounds.js';
-import { validateRound } from '../functions/_lib/validate.js';
+import { addDays, normaliseEvent } from '../src/server/lib/espn.js';
+import { HttpError } from '../src/server/lib/http.js';
+import { resultFor } from '../src/server/lib/rounds.js';
+import { validateRound } from '../src/server/lib/validate.js';
 
 const scoreboard = JSON.parse(readFileSync(new URL('./fixtures/espn-scoreboard.json', import.meta.url)));
 const [live, halftime, fullTime, postponed, scheduled] = scoreboard.events.map((e) => normaliseEvent(e, 'eng.1'));

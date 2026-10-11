@@ -1,7 +1,7 @@
-import { requireAdmin } from '../../_lib/auth.js';
-import { HttpError, json, readJson } from '../../_lib/http.js';
-import { getRound, updateRound } from '../../_lib/rounds.js';
-import { validateRound } from '../../_lib/validate.js';
+import { requireAdmin } from '../lib/auth.js';
+import { HttpError, json, readJson } from '../lib/http.js';
+import { createRound, getRound, listRounds, updateRound } from '../lib/rounds.js';
+import { validateRound } from '../lib/validate.js';
 
 function parseNumber(param) {
   if (param === 'latest') return 'latest';
@@ -9,8 +9,20 @@ function parseNumber(param) {
   throw new HttpError(404, 'Round not found');
 }
 
+// GET /api/rounds — history list
+export async function list({ env }) {
+  return json(await listRounds(env.DB));
+}
+
+// POST /api/rounds — start a new round (admin)
+export async function create({ request, env }) {
+  await requireAdmin(request, env);
+  const round = validateRound(await readJson(request));
+  return json(await createRound(env, round), { status: 201 });
+}
+
 // GET /api/rounds/:number (or "latest") — round with live scores
-export async function onRequestGet({ env, params }) {
+export async function show({ env, params }) {
   const data = await getRound(env, parseNumber(params.number));
 
   if (!data) {
@@ -26,7 +38,7 @@ export async function onRequestGet({ env, params }) {
 }
 
 // PUT /api/rounds/:number — edit a round (admin)
-export async function onRequestPut({ request, env, params }) {
+export async function update({ request, env, params }) {
   await requireAdmin(request, env);
   const number = parseNumber(params.number);
   if (number === 'latest') throw new HttpError(400, 'Edit a round by its number');

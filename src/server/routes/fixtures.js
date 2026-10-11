@@ -1,9 +1,9 @@
-import { fetchScoreboard } from '../_lib/espn.js';
-import { HttpError, json } from '../_lib/http.js';
-import { isDate, isLeague } from '../_lib/validate.js';
+import { fetchScoreboard } from '../lib/espn.js';
+import { HttpError, json } from '../lib/http.js';
+import { isDate, isLeague } from '../lib/validate.js';
 
 // GET /api/fixtures?league=eng.1&date=2026-10-17 — matches for the admin picker
-export async function onRequestGet({ env, request }) {
+export async function list({ env, request }) {
   const params = new URL(request.url).searchParams;
   const league = params.get('league');
   const date = params.get('date');

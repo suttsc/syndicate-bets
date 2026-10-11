@@ -1,11 +1,27 @@
-# Cloudflare Pages project config. Functions in /functions deploy alongside the static site in /public.
+# Cloudflare Worker: serves the static site in /public and the /api routes in src/server.
 name = "syndicate-bets"
+main = "src/server/index.js"
 compatibility_date = "2025-09-01"
-pages_build_output_dir = "public"
+
+# Builds the Tailwind CSS before every `wrangler dev` / `wrangler deploy`.
+[build]
+command = "npm run build"
+
+[assets]
+directory = "public"
+binding = "ASSETS"
+# /history → history.html etc. Unknown paths (e.g. /round/12) fall back to index.html.
+html_handling = "auto-trailing-slash"
+not_found_handling = "single-page-application"
+# Only API requests run the Worker; everything else is served straight from the asset cache.
+run_worker_first = ["/api/*"]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "syndicate-bets"
-# Replace with the id printed by `npx wrangler d1 create syndicate-bets` (see README).
+# Replace with your D1 database id (see README → Deploying).
 database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
+
+[observability]
+enabled = true

@@ -1,4 +1,4 @@
-import { PEOPLE } from '../../public/js/config.js';
+import { PEOPLE } from '../../../public/js/config.js';
 import { fetchEventsFor } from './espn.js';
 import { HttpError } from './http.js';
 

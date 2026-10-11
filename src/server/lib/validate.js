@@ -1,4 +1,4 @@
-import { LEAGUES, PEOPLE } from '../../public/js/config.js';
+import { LEAGUES, PEOPLE } from '../../../public/js/config.js';
 import { HttpError } from './http.js';
 
 const MAX_PICKS = 10;
