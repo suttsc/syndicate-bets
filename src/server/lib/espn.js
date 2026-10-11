@@ -56,10 +56,9 @@ export function normaliseEvent(raw, league) {
   };
 }
 
-/** All events in a league between two YYYY-MM-DD dates (inclusive), edge-cached for 30 s. */
-export async function fetchScoreboard(env, league, from, to = from) {
-  const range = from === to ? compact(from) : `${compact(from)}-${compact(to)}`;
-  const url = `${env.ESPN_BASE ?? DEFAULT_BASE}/${league}/scoreboard?dates=${range}&limit=200`;
+/** All events in a league on one YYYY-MM-DD date, edge-cached for 30 s. ESPN rejects date ranges (400). */
+export async function fetchScoreboard(env, league, date) {
+  const url = `${env.ESPN_BASE ?? DEFAULT_BASE}/${league}/scoreboard?dates=${compact(date)}&limit=200`;
 
   let response;
   try {
@@ -72,6 +71,8 @@ export async function fetchScoreboard(env, league, from, to = from) {
   }
 
   if (!response.ok) {
+    // Visible in the Worker's logs (observability is on) to diagnose API changes.
+    console.error('ESPN error', response.status, url, (await response.text()).slice(0, 300));
     throw new HttpError(502, `Scores service responded ${response.status}`);
   }
 
@@ -80,22 +81,21 @@ export async function fetchScoreboard(env, league, from, to = from) {
 }
 
 /**
- * Look up specific events, batching one scoreboard request per league.
- * A ±1 day window absorbs timezone differences between UK dates and ESPN's.
+ * Look up specific events: one single-day scoreboard request per league and date, all in parallel.
+ * Each pick's date is widened by a day either side to absorb UK vs ESPN timezone differences.
  *
  * @param {Array<{league: string, date: string}>} wanted
  * @returns {Promise<Map<string, object>>} events by id
  */
 export async function fetchEventsFor(env, wanted) {
-  const byLeague = new Map();
-  for (const { league, date } of wanted) {
-    byLeague.set(league, [...(byLeague.get(league) ?? []), date]);
-  }
+  const requests = new Set(
+    wanted.flatMap(({ league, date }) => [-1, 0, 1].map((offset) => `${league}|${addDays(date, offset)}`)),
+  );
 
   const lists = await Promise.all(
-    [...byLeague].map(([league, dates]) => {
-      const sorted = dates.toSorted();
-      return fetchScoreboard(env, league, addDays(sorted[0], -1), addDays(sorted.at(-1), 1));
+    [...requests].map((key) => {
+      const [league, date] = key.split('|');
+      return fetchScoreboard(env, league, date);
     }),
   );
 

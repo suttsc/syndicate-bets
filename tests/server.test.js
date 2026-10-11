@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
-import { addDays, normaliseEvent } from '../src/server/lib/espn.js';
+import { addDays, fetchEventsFor, normaliseEvent } from '../src/server/lib/espn.js';
 import { HttpError } from '../src/server/lib/http.js';
 import { resultFor } from '../src/server/lib/rounds.js';
 import { validateRound } from '../src/server/lib/validate.js';
@@ -50,6 +50,28 @@ describe('addDays', () => {
   it('crosses month and year boundaries', () => {
     assert.equal(addDays('2026-10-31', 1), '2026-11-01');
     assert.equal(addDays('2027-01-01', -1), '2026-12-31');
+  });
+});
+
+describe('fetchEventsFor', () => {
+  it('asks ESPN for single days only (ranges are rejected), deduped across picks', async (t) => {
+    const urls = [];
+    t.mock.method(globalThis, 'fetch', async (url) => {
+      urls.push(url);
+      return new Response(JSON.stringify(scoreboard));
+    });
+
+    const events = await fetchEventsFor({ ESPN_BASE: 'https://espn.test' }, [
+      { league: 'eng.1', date: '2026-10-17' },
+      { league: 'eng.1', date: '2026-10-18' },
+      { league: 'sco.1', date: '2026-10-17' },
+    ]);
+
+    const dates = urls.map((url) => new URL(url).searchParams.get('dates'));
+    assert.ok(dates.every((d) => /^\d{8}$/.test(d)), `unexpected dates param: ${dates}`);
+    assert.equal(urls.filter((u) => u.includes('/eng.1/')).length, 4); // 16th–19th, overlap fetched once
+    assert.equal(urls.filter((u) => u.includes('/sco.1/')).length, 3);
+    assert.equal(events.get('740003').home.name, 'Manchester City');
   });
 });
 
