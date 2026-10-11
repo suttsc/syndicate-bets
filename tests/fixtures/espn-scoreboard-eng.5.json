@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "id": "750101",
+      "date": "2026-10-10T14:00Z",
+      "name": "Oldham Athletic at York City",
+      "competitions": [
+        {
+          "id": "750101",
+          "status": { "clock": 5400, "displayClock": "90'+3'", "period": 2, "type": { "id": "28", "name": "STATUS_FULL_TIME", "state": "post", "completed": true, "detail": "FT", "shortDetail": "FT" } },
+          "competitors": [
+            { "id": "3209", "homeAway": "home", "score": "2", "team": { "id": "3209", "displayName": "York City", "abbreviation": "YRK", "color": "e4002b", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3209.png" } },
+            { "id": "3213", "homeAway": "away", "score": "0", "team": { "id": "3213", "displayName": "Oldham Athletic", "abbreviation": "OLD", "color": "0057b8", "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3213.png" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

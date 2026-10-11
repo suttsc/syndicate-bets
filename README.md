@@ -2,8 +2,9 @@
 
 Live scores for Chris, Jamie, Paul and Steve's football bets — **https://bets.chrissutton.co.uk**
 
-Each **round** everyone backs one team to win and one person is **The Guy**. The site shows live → final
-scores, how many picks are winning / drawing / losing, every past round, and an all-time table.
+Each **round** everyone backs one team to win and one person is **The Guy**. Rounds are numbered within a
+**season** (July → June, written `2026/27`). The site shows live → final scores, how many picks are
+winning / drawing / losing, every past round, and a table per season or all time.
 
 ## Stack
 
@@ -20,10 +21,10 @@ scores, how many picks are winning / drawing / losing, every past round, and an 
 | URL | |
 |---|---|
 | `/` | Latest round, live |
-| `/round/:n` | A specific round (shareable) |
-| `/history` | Every round, newest first |
-| `/leaderboard` | All-time table |
-| `/admin` | Start / edit rounds (password protected) |
+| `/round/2026-27/9` | A specific round (shareable) |
+| `/history` | Every round, grouped by season |
+| `/leaderboard` | Table — `?season=2026-27` or `?season=all` |
+| `/admin` | Start / edit rounds (password protected): choose season + round number, find teams by name |
 
 Add `?mock` (or `?scenario=live|final|pre|empty`) to any page to see it with built-in sample data —
 no backend needed. The demo admin password is `demo`.
@@ -33,11 +34,14 @@ no backend needed. The demo admin password is `demo`.
 | | Auth | |
 |---|---|---|
 | `GET /api/rounds` | – | History list |
-| `GET /api/rounds/latest` · `/api/rounds/:n` | – | Round + live scores (settles finished games) |
-| `POST /api/rounds` | admin | Start a new round |
-| `PUT /api/rounds/:n` | admin | Edit a round |
-| `GET /api/fixtures?league=&date=` | – | Matches for the admin picker |
-| `GET /api/leaderboard` | – | Per-person record |
+| `GET /api/rounds/latest` · `/api/rounds/:season/:number` | – | Round + live scores (settles finished games) |
+| `GET /api/rounds/next?season=2026-27` | – | Next free round number in a season |
+| `POST /api/rounds` | admin | Start a round (`season`, optional `number`, `theGuy`, `picks`) |
+| `PUT /api/rounds/:season/:number` | admin | Edit a round — can also change its season / number |
+| `GET /api/fixtures?date=[&league=]` | – | One league's matches, or every league's (team search) |
+| `GET /api/leaderboard[?season=2026-27]` | – | Per-person record for a season, or all time |
+
+Round numbers are unique per season; saving a number that's taken returns `409`.
 
 Admin requests send `Authorization: Bearer <ADMIN_PASSWORD>`.
 

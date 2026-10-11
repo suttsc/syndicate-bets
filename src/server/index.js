@@ -8,8 +8,10 @@ import * as rounds from './routes/rounds.js';
 const ROUTES = [
   ['GET', /^\/api\/rounds$/, rounds.list],
   ['POST', /^\/api\/rounds$/, rounds.create],
-  ['GET', /^\/api\/rounds\/(?<number>[^/]+)$/, rounds.show],
-  ['PUT', /^\/api\/rounds\/(?<number>[^/]+)$/, rounds.update],
+  ['GET', /^\/api\/rounds\/latest$/, rounds.latest],
+  ['GET', /^\/api\/rounds\/next$/, rounds.next],
+  ['GET', /^\/api\/rounds\/(?<season>\d{4}-\d{2})\/(?<number>\d+)$/, rounds.show],
+  ['PUT', /^\/api\/rounds\/(?<season>\d{4}-\d{2})\/(?<number>\d+)$/, rounds.update],
   ['GET', /^\/api\/fixtures$/, fixtures.list],
   ['GET', /^\/api\/leaderboard$/, leaderboard.show],
 ];

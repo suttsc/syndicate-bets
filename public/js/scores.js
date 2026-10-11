@@ -1,5 +1,6 @@
 import { loadRound } from './api.js';
 import { leagueName } from './config.js';
+import { roundPath, seasonFromSlug } from './season.js';
 import { outcome, summarise } from './outcome.js';
 import { STATUS_STYLES, brand, clockTime, crest, dateRange, esc, kickoffTime, mountTabbar, picker, statusPill } from './ui.js';
 
@@ -8,8 +9,9 @@ const IDLE_REFRESH_MS = 5 * 60_000;
 
 const $ = (id) => document.getElementById(id);
 
-// /round/12 → 12, anything else → latest
-const requested = location.pathname.match(/^\/round\/(\d+)/)?.[1] ?? 'latest';
+// /round/2026-27/9 → { season: "2026/27", number: 9 }; anything else → latest
+const [, slug, number] = location.pathname.match(/^\/round\/(\d{4}-\d{2})\/(\d+)/) ?? [];
+const requested = slug ? { season: seasonFromSlug(slug), number: Number(number) } : 'latest';
 
 let timer;
 
@@ -32,7 +34,7 @@ async function refresh() {
     });
     const summary = summarise(rows.map((r) => r.result));
 
-    document.title = `Bets · Round ${round.number}`;
+    document.title = `Bets · Round ${round.number} · ${round.season}`;
     renderRoundHead(round, rows, summary, prev, next);
     renderSummary(summary);
     $('games').innerHTML = rows.map((row) => gameCard(row, round.theGuy)).join('');
@@ -62,14 +64,14 @@ function renderRoundHead(round, rows, summary, prev, next) {
     const label = dir === 'prev' ? 'Previous round' : 'Next round';
     const icon = `<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
     return target
-      ? `<a href="/round/${target}" aria-label="${label}" class="glass grid size-11 shrink-0 place-items-center rounded-xs text-zinc-200 transition active:scale-90">${icon}</a>`
+      ? `<a href="${roundPath(target)}" aria-label="${label} (${target.season} round ${target.number})" class="glass grid size-11 shrink-0 place-items-center rounded-xs text-zinc-200 transition active:scale-90">${icon}</a>`
       : `<span class="grid size-11 shrink-0 place-items-center rounded-xs text-zinc-700" aria-hidden="true">${icon}</span>`;
   };
 
   $('round-head').innerHTML = `
     ${arrow(prev, 'prev')}
     <div class="min-w-0 text-center">
-      <p class="text-[11px] font-semibold tracking-[0.35em] text-zinc-500 uppercase">Round</p>
+      <p class="text-[11px] font-semibold tracking-[0.35em] text-zinc-500 uppercase">${esc(round.season)} · Round</p>
       <h1 class="grad-win text-grad font-display text-6xl leading-none font-bold tracking-tight tabular">${round.number}</h1>
       <p class="mt-1.5 text-sm text-zinc-400">${esc(dateRange(kickoffs[0], kickoffs.at(-1)))}${live}</p>
     </div>

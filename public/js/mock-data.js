@@ -18,6 +18,8 @@ const TEAMS = {
   257: { name: 'Rangers', abbr: 'RAN', color: '#1b458f', league: 'sco.1' },
   258: { name: 'Aberdeen', abbr: 'ABE', color: '#c8102e', league: 'sco.1' },
   259: { name: 'Hearts', abbr: 'HEA', color: '#7a263a', league: 'sco.1' },
+  901: { name: 'York City', abbr: 'YRK', color: '#e4002b', league: 'eng.5' },
+  902: { name: 'Oldham Athletic', abbr: 'OLD', color: '#0057b8', league: 'eng.5' },
 };
 
 const team = (id, score = '0') => ({ id: String(id), ...TEAMS[id], logo: null, score: String(score) });
@@ -28,7 +30,7 @@ const at = (msFromNow) => new Date(Date.now() + msFromNow).toISOString();
 
 const event = (id, league, state, detail, kickoff, home, away, extra = {}) => ({ id, league, state, detail, kickoff, home, away, ...extra });
 
-// Latest round (Round 12): Chris → Arsenal, Jamie → Liverpool, Paul → Leeds, Steve → Celtic (Monday night).
+// Latest round (Round 9, 2026/27): Chris → Arsenal, Jamie → Liverpool, Paul → Leeds, Steve → Celtic (Monday night).
 const LATEST = {
   live: [
     event('1201', 'eng.1', 'in', "67'", at(-1.2 * HOUR), team(359, 2), team(363, 1)),
@@ -62,8 +64,8 @@ function rng(seed) {
   return () => ((s = (s * 1664525 + 1013904223) % 2 ** 32) / 2 ** 32);
 }
 
-function pastRound(number, weeksAgo) {
-  const rand = rng(number * 7919);
+function pastRound(seed, season, number, weeksAgo) {
+  const rand = rng(seed * 7919);
   const ids = Object.keys(TEAMS);
   const saturday = Date.now() - weeksAgo * 7 * DAY;
   const goals = () => Math.floor(rand() * rand() * 5);
@@ -75,7 +77,7 @@ function pastRound(number, weeksAgo) {
     const backedHome = rand() > 0.5;
     const [home, away] = backedHome ? [team(backed, goals() + (rand() > 0.45 ? 1 : 0)), team(opponent, goals())] : [team(opponent, goals()), team(backed, goals() + (rand() > 0.45 ? 1 : 0))];
     const dayOffset = [-1, 0, 0, 2][i] * DAY; // Fri → Mon spread
-    const id = `${number}0${i + 1}`;
+    const id = `${seed}0${i + 1}`;
 
     return {
       pick: { picker: name, teamId: backed, eventId: id, league: TEAMS[backed].league },
@@ -84,8 +86,9 @@ function pastRound(number, weeksAgo) {
   });
 
   return {
+    season,
     number,
-    theGuy: PEOPLE[number % PEOPLE.length].name,
+    theGuy: PEOPLE[seed % PEOPLE.length].name,
     picks: picks.map((p) => p.pick),
     events: picks.map((p) => p.event),
   };
@@ -99,12 +102,16 @@ export function mockRounds() {
   }
 
   const latestEvents = LATEST[scenario] ?? LATEST.live;
-  const past = Array.from({ length: 11 }, (_, i) => pastRound(i + 1, 11 - i));
+  // End of last season (rounds 35–38), then rounds 1–8 of this one; the live round is 9.
+  const lastSeason = Array.from({ length: 4 }, (_, i) => pastRound(i + 1, '2025/26', 35 + i, 24 - i));
+  const thisSeason = Array.from({ length: 8 }, (_, i) => pastRound(i + 5, '2026/27', i + 1, 8 - i));
 
   return [
-    ...past,
+    ...lastSeason,
+    ...thisSeason,
     {
-      number: 12,
+      season: '2026/27',
+      number: 9,
       theGuy: 'Paul',
       picks: LATEST_PICKS.map((p, i) => ({ ...p, eventId: latestEvents[i].id, league: latestEvents[i].league })),
       events: latestEvents,
@@ -119,8 +126,13 @@ export function mockFixtures(league, date) {
   const fixtures = [];
 
   for (let i = 0; i + 1 < ids.length; i += 2) {
-    fixtures.push(event(`f-${league}-${date}-${i}`, league, 'pre', '', kickoff, team(ids[i]), team(ids[i + 1])));
+    fixtures.push(event(`${date.replaceAll('-', '')}${ids[i]}`, league, 'pre', '', kickoff, team(ids[i]), team(ids[i + 1])));
   }
 
   return fixtures;
+}
+
+// Every league's fixtures on a date, for team search.
+export function mockAllFixtures(date) {
+  return [...new Set(Object.values(TEAMS).map((t) => t.league))].flatMap((league) => mockFixtures(league, date));
 }

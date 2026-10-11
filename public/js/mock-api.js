@@ -1,6 +1,6 @@
 // Sample-data implementation of js/api.js, loaded only with ?mock or ?scenario=… (design previews, demos).
 import { PEOPLE } from './config.js';
-import { mockFixtures, mockRounds } from './mock-data.js';
+import { mockAllFixtures, mockFixtures, mockRounds } from './mock-data.js';
 import { outcome } from './outcome.js';
 
 const MOCK_PASSWORD = 'demo';
@@ -14,12 +14,15 @@ const withResults = (round) =>
   });
 
 const roundStatus = (round) => (withResults(round).every((r) => r.result.final) ? 'complete' : 'open');
+const keyOf = (round) => (round ? { season: round.season, number: round.number } : null);
 
-export async function loadRound(number = 'latest') {
+export async function loadRound(key = 'latest') {
   await delay(250);
 
   const rounds = mockRounds();
-  const index = number === 'latest' ? rounds.length - 1 : rounds.findIndex((r) => r.number === Number(number));
+  const index = key === 'latest'
+    ? rounds.length - 1
+    : rounds.findIndex((r) => r.season === key.season && r.number === Number(key.number));
   const round = rounds[index];
 
   if (!round) {
@@ -27,11 +30,11 @@ export async function loadRound(number = 'latest') {
   }
 
   return {
-    round: { number: round.number, theGuy: round.theGuy, status: roundStatus(round) },
+    round: { season: round.season, number: round.number, theGuy: round.theGuy, status: roundStatus(round) },
     picks: round.picks,
     events: round.events,
-    prev: rounds[index - 1]?.number ?? null,
-    next: rounds[index + 1]?.number ?? null,
+    prev: keyOf(rounds[index - 1]),
+    next: keyOf(rounds[index + 1]),
   };
 }
 
@@ -42,6 +45,7 @@ export async function loadRounds() {
     .map((round) => {
       const kickoffs = round.events.map((e) => e.kickoff).sort();
       return {
+        season: round.season,
         number: round.number,
         theGuy: round.theGuy,
         status: roundStatus(round),
@@ -58,32 +62,47 @@ export async function loadRounds() {
     .reverse();
 }
 
-export async function loadLeaderboard() {
+export async function loadNextNumber(season) {
+  const numbers = mockRounds().filter((r) => r.season === season).map((r) => r.number);
+  return Math.max(0, ...numbers) + 1;
+}
+
+export async function loadLeaderboard(season = null) {
   await delay(250);
 
-  const rounds = mockRounds();
+  const all = mockRounds();
+  const rounds = season ? all.filter((r) => r.season === season) : all;
 
-  return PEOPLE.map(({ name }) => {
-    const settled = rounds
-      .flatMap((round) => withResults(round))
-      .filter(({ pick, result }) => pick.picker === name && result.final && result.status !== 'void')
-      .map(({ result }) => result.status);
+  return {
+    seasons: [...new Set(all.map((r) => r.season))].sort().reverse(),
+    season,
+    people: PEOPLE.map(({ name }) => {
+      const settled = rounds
+        .flatMap((round) => withResults(round))
+        .filter(({ pick, result }) => pick.picker === name && result.final && result.status !== 'void')
+        .map(({ result }) => result.status);
 
-    return {
-      name,
-      played: settled.length,
-      won: settled.filter((s) => s === 'winning').length,
-      drew: settled.filter((s) => s === 'drawing').length,
-      lost: settled.filter((s) => s === 'losing').length,
-      form: settled.slice(-5).reverse(),
-      guyRounds: rounds.filter((r) => r.theGuy === name).length,
-    };
-  });
+      return {
+        name,
+        played: settled.length,
+        won: settled.filter((s) => s === 'winning').length,
+        drew: settled.filter((s) => s === 'drawing').length,
+        lost: settled.filter((s) => s === 'losing').length,
+        form: settled.slice(-5).reverse(),
+        guyRounds: rounds.filter((r) => r.theGuy === name).length,
+      };
+    }),
+  };
 }
 
 export async function loadFixtures(league, date) {
   await delay(350);
   return mockFixtures(league, date);
+}
+
+export async function loadAllFixtures(date) {
+  await delay(500);
+  return mockAllFixtures(date);
 }
 
 function checkPassword(password) {
@@ -95,11 +114,11 @@ function checkPassword(password) {
 export async function createRound(round, password) {
   await delay(600);
   checkPassword(password);
-  return { number: mockRounds().length + 1 };
+  return { season: round.season, number: round.number ?? (await loadNextNumber(round.season)) };
 }
 
-export async function updateRound(number, round, password) {
+export async function updateRound(key, round, password) {
   await delay(600);
   checkPassword(password);
-  return { number };
+  return { season: round.season, number: round.number ?? key.number };
 }

@@ -1,4 +1,5 @@
 import { loadLeaderboard } from './api.js';
+import { seasonFor, seasonFromSlug, seasonSlug } from './season.js';
 import { avatar, brand, esc, mountTabbar, resultDot } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -33,14 +34,55 @@ function row(person, position) {
     </li>`;
 }
 
+const ALL_TIME = 'all';
+
+function seasonTabs(seasons, active) {
+  const tab = (value, label) => {
+    const on = value === active;
+    return `<button type="button" data-season="${esc(value)}" aria-pressed="${on}"
+      class="h-9 shrink-0 rounded-xs px-3 font-display text-sm font-bold transition active:scale-95 ${on ? 'grad-win text-black' : 'glass text-zinc-400'}">${esc(label)}</button>`;
+  };
+  return [...seasons.map((s) => tab(s, s)), tab(ALL_TIME, 'All time')].join('');
+}
+
+async function show(selected) {
+  const data = await loadLeaderboard(selected === ALL_TIME ? null : selected);
+
+  // Most wins first; win rate breaks ties.
+  const people = data.people.sort((a, b) => b.won - a.won || winRate(b) - winRate(a));
+  const empty = people.every((p) => p.played === 0);
+
+  $('content').innerHTML = `
+    <div id="seasons" class="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">${seasonTabs(data.seasons, selected)}</div>
+    ${empty
+      ? '<div class="glass rounded-xs p-10 text-center text-zinc-400">No finished games yet.</div>'
+      : `<ol class="space-y-3">${people.map((p, i) => row(p, i + 1)).join('')}</ol>`}`;
+
+  return data;
+}
+
 async function init() {
   $('brand').innerHTML = brand();
   mountTabbar('table');
 
-  // Most wins first; win rate breaks ties.
-  const people = (await loadLeaderboard()).sort((a, b) => b.won - a.won || winRate(b) - winRate(a));
+  // ?season=2026-27 or ?season=all; default to the current season (or the latest one with rounds).
+  const param = new URLSearchParams(location.search).get('season');
+  const requested = param === ALL_TIME ? ALL_TIME : param ? seasonFromSlug(param) : seasonFor();
+  const data = await show(requested);
 
-  $('content').innerHTML = `<ol class="space-y-3">${people.map((p, i) => row(p, i + 1)).join('')}</ol>`;
+  if (!param && !data.seasons.includes(requested)) {
+    await show(data.seasons[0] ?? ALL_TIME);
+  }
+
+  $('content').addEventListener('click', (e) => {
+    const tab = e.target.closest('[data-season]');
+    if (!tab) return;
+
+    const url = new URL(location.href);
+    url.searchParams.set('season', tab.dataset.season === ALL_TIME ? ALL_TIME : seasonSlug(tab.dataset.season));
+    history.replaceState(null, '', url);
+    show(tab.dataset.season);
+  });
 }
 
 init();

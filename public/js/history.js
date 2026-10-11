@@ -1,4 +1,5 @@
 import { loadRounds } from './api.js';
+import { roundPath } from './season.js';
 import { avatar, brand, dateRange, esc, mountTabbar, resultDot } from './ui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -13,7 +14,7 @@ function roundRow(round) {
   const dots = round.results.map((r) => resultDot(r.status, r.picker[0])).join('');
 
   return `
-    <a href="/round/${round.number}" class="glass relative flex items-center gap-4 overflow-hidden rounded-xs p-4 transition active:scale-[0.99]">
+    <a href="${roundPath(round)}" class="glass relative flex items-center gap-4 overflow-hidden rounded-xs p-4 transition active:scale-[0.99]">
       ${open ? '<span class="grad-win absolute inset-y-0 left-0 w-1"></span>' : ''}
       <div class="w-14 shrink-0 text-center">
         <p class="text-[10px] font-semibold tracking-[0.25em] text-zinc-500 uppercase">Rnd</p>
@@ -41,9 +42,20 @@ async function init() {
 
   const rounds = await loadRounds();
 
-  $('content').innerHTML = rounds.length
-    ? rounds.map(roundRow).join('')
-    : '<div class="glass rounded-xs p-10 text-center text-zinc-400">No rounds yet.</div>';
+  if (!rounds.length) {
+    $('content').innerHTML = '<div class="glass rounded-xs p-10 text-center text-zinc-400">No rounds yet.</div>';
+    return;
+  }
+
+  // Rounds arrive newest first; group them under a heading per season.
+  const seasons = [...new Set(rounds.map((r) => r.season))];
+  $('content').innerHTML = seasons
+    .map((season) => `
+      <section class="space-y-3">
+        <h2 class="sticky top-0 z-10 -mx-4 bg-ink/80 px-4 py-2 font-display text-sm font-bold tracking-[0.25em] text-zinc-400 backdrop-blur-xl">${esc(season)}</h2>
+        ${rounds.filter((r) => r.season === season).map(roundRow).join('')}
+      </section>`)
+    .join('');
 }
 
 init();

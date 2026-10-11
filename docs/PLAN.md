@@ -185,6 +185,12 @@ README.md                   setup + usage
    3. Worker → Variables and Secrets → secret `ADMIN_PASSWORD`.
    4. Worker → Domains & Routes → custom domain `bets.chrissutton.co.uk`.
 
+## Update: seasons, chosen round numbers, team search
+- `migrations/0002_seasons.sql` rebuilds `rounds` with `season` and `UNIQUE(season, number)`; existing rounds get the season of their first kick-off. Picks are copied before old tables are dropped, so nothing cascades.
+- Admin: New round / Edit a round (any round, via picker); season + round number fields; after the first save the form is bound to that round, so saving again updates it.
+- "Find a team" searches every supported league's fixtures on the game's date (one cached request per date) and fills league, match and backed team. Added National League and Scottish Championship / League One / League Two.
+- URLs `/round/2026-27/9`; History grouped by season; Table has season tabs + All time.
+
 ## Verification
 - `npm test` — outcome/summary, validation, ESPN normalisation.
 - Design phase: Playwright screenshots at 390 px (light + dark) and 1280 px for every page/state; no console errors.

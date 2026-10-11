@@ -1,8 +1,11 @@
-import { createRound, loadFixtures, loadRound, updateRound } from './api.js';
-import { LEAGUES, PEOPLE, personColor } from './config.js';
+import { createRound, loadAllFixtures, loadFixtures, loadNextNumber, loadRound, loadRounds, updateRound } from './api.js';
+import { LEAGUES, PEOPLE, leagueName, personColor } from './config.js';
+import { isSeason, seasonFor } from './season.js';
 import { crest, esc, kickoffTime, shortDate } from './ui.js';
 
 const PASSWORD_KEY = 'bets.adminPassword';
+const MIN_QUERY = 2;
+const MAX_SUGGESTIONS = 8;
 
 const $ = (id) => document.getElementById(id);
 
@@ -11,16 +14,34 @@ const storage = {
   set: (key, value) => { try { localStorage.setItem(key, value); } catch { /* private mode */ } },
 };
 
-/** @type {{mode: 'new'|'edit', latest: null|{round: object, picks: Array, events: Array}, theGuy: string|null, slots: Array}} */
-const state = { mode: 'new', latest: null, theGuy: null, slots: [] };
+/**
+ * mode:      'new' (nothing saved yet) or 'edit' (form is bound to an existing round)
+ * editing:   { season, number } of the round being edited, as currently stored
+ * season / number: what the round will be saved as (number null = next free one)
+ */
+const state = {
+  mode: 'new',
+  rounds: [],
+  editing: null,
+  season: seasonFor(),
+  number: null,
+  theGuy: null,
+  slots: [],
+  message: null,
+};
+
+// Every league's fixtures per date, fetched once per date and shared by all games' team search.
+const allFixtures = new Map();
 
 const FIELD = 'mt-2 block h-12 w-full rounded-xs border-0 bg-white/5 px-3 text-base text-white ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-emerald-400';
 const LABEL = 'text-[11px] font-semibold tracking-wider text-zinc-400 uppercase';
 
+const localDate = (iso) => new Date(iso).toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+
 function nextSaturday() {
   const date = new Date();
   date.setDate(date.getDate() + ((6 - date.getDay() + 7) % 7));
-  return date.toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+  return localDate(date.toISOString());
 }
 
 function newSlot(overrides = {}) {
@@ -28,37 +49,70 @@ function newSlot(overrides = {}) {
 }
 
 const isReady = (slot) => slot.picker && slot.eventId && slot.teamId;
-const nextNumber = () => (state.latest?.round.number ?? 0) + 1;
+const sameRound = (a, b) => a && b && a.season === b.season && a.number === b.number;
+const roundLabel = ({ season, number }) => `${season} · Round ${number}`;
 
-/** Fill the form for a fresh round, or with the latest round's picks for editing. */
-function setMode(mode) {
-  state.mode = mode;
-
-  if (mode === 'edit' && state.latest) {
-    const { round, picks, events } = state.latest;
-    state.theGuy = round.theGuy;
-    state.slots = picks.map((p) => {
-      const event = events.find((e) => e.id === p.eventId);
-      return newSlot({ ...p, date: event?.kickoff.slice(0, 10), fixtures: events.filter((e) => e.league === p.league) });
+function fixturesForDate(date) {
+  if (!allFixtures.has(date)) {
+    const request = loadAllFixtures(date).catch((error) => {
+      allFixtures.delete(date); // let the next keystroke retry
+      throw error;
     });
-  } else {
-    state.theGuy = null;
-    state.slots = PEOPLE.map(({ name }) => newSlot({ picker: name }));
+    allFixtures.set(date, request);
   }
-
-  $('save-status').textContent = '';
-  render();
-  state.slots.filter((s) => !s.fixtures).forEach(fetchFixtures);
+  return allFixtures.get(date);
 }
 
+/** Start a blank round: one game per person, next free number in the current season. */
+async function startNew() {
+  Object.assign(state, {
+    mode: 'new',
+    editing: null,
+    season: seasonFor(nextSaturday()),
+    number: null,
+    theGuy: null,
+    slots: PEOPLE.map(({ name }) => newSlot({ picker: name })),
+    message: null,
+  });
+  render();
+  state.slots.forEach(fetchFixtures);
+  state.number = await loadNextNumber(state.season);
+  render();
+}
+
+/** Load an existing round into the form. */
+async function startEdit(key) {
+  const data = await loadRound(key);
+  if (!data) return startNew();
+
+  const { round, picks, events } = data;
+  Object.assign(state, {
+    mode: 'edit',
+    editing: { season: round.season, number: round.number },
+    season: round.season,
+    number: round.number,
+    theGuy: round.theGuy,
+    message: null,
+    slots: picks.map((pick) => {
+      const event = events.find((e) => e.id === pick.eventId);
+      return newSlot({ ...pick, date: event ? localDate(event.kickoff) : nextSaturday(), fixtures: event ? [event] : null });
+    }),
+  });
+  render();
+  state.slots.forEach(fetchFixtures);
+}
+
+/** Load a league's matches for a slot's date, keeping an already-chosen match in the list. */
 async function fetchFixtures(slot) {
+  const chosen = slot.fixtures?.find((f) => f.id === slot.eventId);
   slot.loading = true;
   render();
 
   try {
-    slot.fixtures = await loadFixtures(slot.league, slot.date);
+    const list = await loadFixtures(slot.league, slot.date);
+    slot.fixtures = chosen && !list.some((f) => f.id === chosen.id) ? [chosen, ...list] : list;
   } catch {
-    slot.fixtures = [];
+    slot.fixtures = chosen ? [chosen] : [];
   } finally {
     slot.loading = false;
     render();
@@ -77,14 +131,15 @@ function personButtons({ selected, attrs, dimmed = [], activeClass = '', activeS
 }
 
 function render() {
-  const latest = state.latest?.round;
-
-  $('subtitle').textContent = state.mode === 'edit' ? `Editing round ${latest.number}` : `Starting round ${nextNumber()}`;
+  const target = { season: state.season, number: state.number ?? '…' };
+  $('subtitle').textContent = `${state.mode === 'edit' ? 'Editing' : 'Starting'} ${roundLabel(target)}`;
 
   const tab = (mode, label, disabled = false) => `
     <button type="button" role="tab" data-mode="${mode}" aria-selected="${state.mode === mode}" ${disabled ? 'disabled' : ''}
       class="h-11 rounded-xs font-display text-sm font-bold transition disabled:opacity-30 ${state.mode === mode ? 'grad-win text-black shadow-[0_6px_24px_-8px_rgb(16_185_129/0.8)]' : 'text-zinc-400'}">${label}</button>`;
-  $('mode').innerHTML = tab('new', `New round ${nextNumber()}`) + tab('edit', latest ? `Edit round ${latest.number}` : 'Edit round', !latest);
+  $('mode').innerHTML = tab('new', 'New round') + tab('edit', 'Edit a round', !state.rounds.length);
+
+  $('round-meta').innerHTML = roundMeta();
 
   $('the-guy').innerHTML = personButtons({
     selected: state.theGuy,
@@ -94,12 +149,20 @@ function render() {
   });
 
   $('slots').innerHTML = state.slots.map(slotCard).join('');
+  renderStatus();
+}
 
+function renderStatus() {
   const ready = state.slots.filter(isReady).length;
-  const complete = state.slots.length > 0 && ready === state.slots.length && state.theGuy;
+  const seasonOk = isSeason(state.season);
+  const complete = state.slots.length > 0 && ready === state.slots.length && state.theGuy && seasonOk;
   $('save').disabled = !complete;
 
-  if (!state.slots.length) {
+  if (state.message) {
+    $('save-status').innerHTML = state.message;
+  } else if (!seasonOk) {
+    $('save-status').textContent = 'Season must look like 2026/27';
+  } else if (!state.slots.length) {
     $('save-status').textContent = 'Add a game';
   } else if (!state.theGuy) {
     $('save-status').textContent = 'Choose The Guy';
@@ -108,14 +171,37 @@ function render() {
   }
 }
 
+function roundMeta() {
+  const picker = state.mode === 'edit' ? `
+    <label class="mb-3 block">
+      <span class="${LABEL}">Round to edit</span>
+      <select id="round-select" class="${FIELD}">
+        ${state.rounds.map((r) => `<option value="${esc(r.season)}|${r.number}" ${sameRound(r, state.editing) ? 'selected' : ''}>${esc(roundLabel(r))}</option>`).join('')}
+      </select>
+    </label>` : '';
+
+  return `
+    ${picker}
+    <div class="grid grid-cols-2 gap-2">
+      <label class="block">
+        <span class="${LABEL}">Season</span>
+        <input id="season" inputmode="numeric" autocomplete="off" placeholder="2026/27" value="${esc(state.season)}" class="${FIELD} ${isSeason(state.season) ? '' : 'ring-2 ring-rose-400'}" />
+      </label>
+      <label class="block">
+        <span class="${LABEL}">Round number</span>
+        <input id="number" type="number" min="1" max="999" inputmode="numeric" value="${state.number ?? ''}" class="${FIELD} tabular" />
+      </label>
+    </div>`;
+}
+
 function slotCard(slot, index) {
   const event = slot.fixtures?.find((f) => f.id === slot.eventId);
 
   let matchControl;
-  if (slot.loading) {
+  if (slot.loading && !slot.fixtures?.length) {
     matchControl = '<div class="mt-2 h-12 animate-pulse rounded-xs bg-white/5"></div>';
   } else if (slot.fixtures?.length === 0) {
-    matchControl = `<p class="mt-2 rounded-xs bg-white/5 px-3 py-3.5 text-sm text-zinc-500">No games on ${esc(shortDate(slot.date))}</p>`;
+    matchControl = `<p class="mt-2 rounded-xs bg-white/5 px-3 py-3.5 text-sm text-zinc-500">No ${esc(leagueName(slot.league))} games on ${esc(shortDate(slot.date))}</p>`;
   } else {
     matchControl = `
       <select data-field="eventId" data-index="${index}" class="${FIELD}">
@@ -137,7 +223,7 @@ function slotCard(slot, index) {
   };
 
   return `
-    <li class="glass relative overflow-hidden rounded-xs p-4">
+    <li class="glass relative rounded-xs p-4">
       <div class="flex items-center justify-between">
         <h2 class="font-display font-bold">Game ${index + 1}</h2>
         <button type="button" data-remove="${index}" class="-mr-2 rounded-xs px-2 py-1 text-sm font-semibold text-rose-400 active:bg-rose-500/10">Remove</button>
@@ -154,18 +240,33 @@ function slotCard(slot, index) {
         </div>
       </fieldset>
 
-      <div class="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:gap-2">
-        <label class="block min-w-0">
-          <span class="${LABEL}">League</span>
-          <select data-field="league" data-index="${index}" class="${FIELD}">
-            ${LEAGUES.map((l) => `<option value="${l.slug}" ${l.slug === slot.league ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}
-          </select>
-        </label>
+      <label class="mt-3 block">
+        <span class="${LABEL}">Date</span>
+        <input type="date" data-field="date" data-index="${index}" value="${esc(slot.date)}" class="${FIELD}" />
+      </label>
+
+      <div class="mt-3">
         <label class="block">
-          <span class="${LABEL}">Date</span>
-          <input type="date" data-field="date" data-index="${index}" value="${esc(slot.date)}" class="${FIELD} sm:w-[9.5rem]" />
+          <span class="${LABEL}">Find a team</span>
+          <div class="relative">
+            <input type="search" data-search="${index}" autocomplete="off" enterkeyhint="search" placeholder="Type a team, e.g. York"
+              class="${FIELD} pl-10" />
+            <svg class="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          </div>
         </label>
+        <div id="suggest-${index}" role="listbox" class="mt-2 space-y-1 empty:hidden"></div>
       </div>
+
+      <p class="mt-4 flex items-center gap-3 text-[11px] font-semibold tracking-wider text-zinc-600 uppercase">
+        <span class="h-px flex-1 bg-white/10"></span>or choose by league<span class="h-px flex-1 bg-white/10"></span>
+      </p>
+
+      <label class="mt-2 block">
+        <span class="${LABEL}">League</span>
+        <select data-field="league" data-index="${index}" class="${FIELD}">
+          ${LEAGUES.map((l) => `<option value="${l.slug}" ${l.slug === slot.league ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}
+        </select>
+      </label>
 
       <label class="mt-3 block">
         <span class="${LABEL}">Match</span>
@@ -180,18 +281,107 @@ function slotCard(slot, index) {
     </li>`;
 }
 
+/** Teams playing on the slot's date whose name contains the query, in any supported league. */
+async function suggest(index, query) {
+  const box = $(`suggest-${index}`);
+  const slot = state.slots[index];
+  const q = query.trim().toLowerCase();
+
+  if (q.length < MIN_QUERY) {
+    box.innerHTML = '';
+    return;
+  }
+
+  box.innerHTML = '<p class="px-1 text-sm text-zinc-500">Searching every league…</p>';
+
+  let events;
+  try {
+    events = await fixturesForDate(slot.date);
+  } catch {
+    box.innerHTML = '<p class="px-1 text-sm text-rose-400">Couldn\'t load matches. Try again.</p>';
+    return;
+  }
+
+  // Ignore stale results if the user kept typing or changed the date meanwhile.
+  const input = document.querySelector(`[data-search="${index}"]`);
+  if (!input || input.value.trim().toLowerCase() !== q) return;
+
+  const matches = events
+    .flatMap((event) => [event.home, event.away].map((team) => ({ event, team, opponent: team === event.home ? event.away : event.home })))
+    .filter(({ team }) => team.name.toLowerCase().includes(q) || team.abbr?.toLowerCase() === q)
+    .slice(0, MAX_SUGGESTIONS);
+
+  box.innerHTML = matches.length
+    ? matches.map(({ event, team, opponent }) => `
+        <button type="button" role="option" data-suggest="${index}" data-event="${esc(event.id)}" data-team-id="${esc(team.id)}" data-league="${esc(event.league)}"
+          class="flex w-full items-center gap-3 rounded-xs bg-white/5 p-2 text-left ring-1 ring-white/10 transition active:scale-[.99] hover:bg-white/10">
+          ${crest(team, 'size-8')}
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-semibold">${esc(team.name)}</span>
+            <span class="block truncate text-xs text-zinc-400">v ${esc(opponent.name)} · ${esc(leagueName(event.league))} · ${esc(kickoffTime(event.kickoff))}</span>
+          </span>
+        </button>`).join('')
+    : `<p class="px-1 text-sm text-zinc-500">No team matching “${esc(query.trim())}” on ${esc(shortDate(slot.date))}</p>`;
+}
+
+/** Picking a suggestion fills in league, match and team in one go. */
+async function applySuggestion(button) {
+  const slot = state.slots[Number(button.dataset.suggest)];
+  const events = await fixturesForDate(slot.date);
+
+  Object.assign(slot, {
+    league: button.dataset.league,
+    eventId: button.dataset.event,
+    teamId: button.dataset.teamId,
+    fixtures: events.filter((e) => e.league === button.dataset.league),
+  });
+  state.message = null;
+  render();
+}
+
 $('mode').addEventListener('click', (e) => {
   const tab = e.target.closest('[data-mode]');
-  if (tab && !tab.disabled && tab.dataset.mode !== state.mode) {
-    setMode(tab.dataset.mode);
+  if (!tab || tab.disabled || tab.dataset.mode === state.mode) return;
+
+  if (tab.dataset.mode === 'new') startNew();
+  else startEdit(state.rounds[0]);
+});
+
+$('round-meta').addEventListener('change', async (e) => {
+  if (e.target.id === 'round-select') {
+    const [season, number] = e.target.value.split('|');
+    startEdit({ season, number: Number(number) });
+    return;
   }
+
+  if (e.target.id === 'season') {
+    state.season = e.target.value.trim();
+    // A new round in a different season starts from that season's next free number.
+    if (state.mode === 'new' && isSeason(state.season)) {
+      state.number = await loadNextNumber(state.season);
+    }
+  }
+
+  if (e.target.id === 'number') {
+    state.number = e.target.value ? Number(e.target.value) : null;
+  }
+
+  state.message = null;
+  render();
 });
 
 $('the-guy').addEventListener('click', (e) => {
   const button = e.target.closest('[data-guy]');
   if (button) {
     state.theGuy = button.dataset.guy;
+    state.message = null;
     render();
+  }
+});
+
+$('slots').addEventListener('input', (e) => {
+  if (e.target.dataset.search !== undefined) {
+    suggest(Number(e.target.dataset.search), e.target.value);
   }
 });
 
@@ -201,20 +391,27 @@ $('slots').addEventListener('change', (e) => {
 
   const slot = state.slots[Number(index)];
   slot[field] = e.target.value || null;
+  state.message = null;
 
   if (field === 'eventId') {
     slot.teamId = null;
     render();
   } else {
-    Object.assign(slot, { eventId: null, teamId: null });
+    Object.assign(slot, { eventId: null, teamId: null, fixtures: null });
     fetchFixtures(slot);
   }
 });
 
 $('slots').addEventListener('click', (e) => {
+  const suggestion = e.target.closest('[data-suggest]');
   const team = e.target.closest('[data-team]');
   const remove = e.target.closest('[data-remove]');
   const person = e.target.closest('[data-picker]');
+
+  if (suggestion) {
+    applySuggestion(suggestion);
+    return;
+  }
 
   if (person) {
     state.slots[Number(person.dataset.index)].picker = person.dataset.picker;
@@ -226,6 +423,7 @@ $('slots').addEventListener('click', (e) => {
     return;
   }
 
+  state.message = null;
   render();
 });
 
@@ -244,23 +442,38 @@ $('save').addEventListener('click', async () => {
   $('save-status').textContent = 'Saving…';
 
   const payload = {
+    season: state.season,
+    number: state.number,
     theGuy: state.theGuy,
     picks: state.slots.map(({ picker, league, date, eventId, teamId }) => ({ picker, league, date, eventId, teamId })),
   };
 
   try {
     const saved = state.mode === 'edit'
-      ? await updateRound(state.latest.round.number, payload, $('password').value)
+      ? await updateRound(state.editing, payload, $('password').value)
       : await createRound(payload, $('password').value);
 
-    $('save-status').innerHTML = `<span class="font-semibold text-emerald-400">Round ${saved.number} saved ✓ Everyone can see it now</span>`;
+    // From now on this form is bound to the saved round: saving again updates it rather than creating another.
+    Object.assign(state, {
+      mode: 'edit',
+      editing: saved,
+      season: saved.season,
+      number: saved.number,
+      message: `<span class="font-semibold text-emerald-400">${esc(roundLabel(saved))} saved ✓ Everyone can see it now</span>`,
+    });
+    state.rounds = await loadRounds();
   } catch (error) {
-    $('save-status').innerHTML = `<span class="font-semibold text-rose-400">${esc(error.message)}</span>`;
-  } finally {
-    $('save').disabled = false;
+    state.message = `<span class="font-semibold text-rose-400">${esc(error.message)}</span>`;
   }
+
+  render();
 });
 
-// Default to editing an unfinished round, otherwise start the next one.
-state.latest = await loadRound('latest');
-setMode(state.latest?.round.status === 'open' ? 'edit' : 'new');
+// Default to editing an unfinished latest round, otherwise start the next one.
+state.rounds = await loadRounds();
+const latest = state.rounds[0];
+if (latest?.status === 'open') {
+  await startEdit(latest);
+} else {
+  await startNew();
+}

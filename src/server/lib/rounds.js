@@ -37,32 +37,45 @@ const pickDate = (row) => JSON.parse(row.snapshot).kickoff.slice(0, 10);
 
 const toPick = (row) => ({ picker: row.picker, league: row.league, eventId: row.event_id, teamId: row.team_id });
 
-async function findRound(db, number) {
-  const sql = number === 'latest'
-    ? 'SELECT * FROM rounds ORDER BY number DESC LIMIT 1'
-    : 'SELECT * FROM rounds WHERE number = ?1';
-  const statement = db.prepare(sql);
-  return number === 'latest' ? statement.first() : statement.bind(Number(number)).first();
+const roundKey = (row) => (row ? { season: row.season, number: row.number } : null);
+
+/** @param {'latest'|{season: string, number: number}} key */
+function findRound(db, key) {
+  return key === 'latest'
+    ? db.prepare('SELECT * FROM rounds ORDER BY season DESC, number DESC LIMIT 1').first()
+    : db.prepare('SELECT * FROM rounds WHERE season = ?1 AND number = ?2').bind(key.season, key.number).first();
+}
+
+/** Previous / next round in (season, number) order, crossing season boundaries. */
+async function neighbours(db, round) {
+  const [prev, next] = await Promise.all([
+    db.prepare(
+      `SELECT season, number FROM rounds WHERE season < ?1 OR (season = ?1 AND number < ?2)
+       ORDER BY season DESC, number DESC LIMIT 1`,
+    ).bind(round.season, round.number).first(),
+    db.prepare(
+      `SELECT season, number FROM rounds WHERE season > ?1 OR (season = ?1 AND number > ?2)
+       ORDER BY season, number LIMIT 1`,
+    ).bind(round.season, round.number).first(),
+  ]);
+  return { prev: roundKey(prev), next: roundKey(next) };
 }
 
 /**
  * A round with live scores merged in. Finished games are frozen into D1 as a side effect,
  * and the round is marked complete once every pick is settled.
  */
-export async function getRound(env, number) {
+export async function getRound(env, key) {
   const db = env.DB;
-  const round = await findRound(db, number);
+  const round = await findRound(db, key);
 
   if (!round) {
     return null;
   }
 
-  const [{ results: rows }, neighbours] = await Promise.all([
+  const [{ results: rows }, { prev, next }] = await Promise.all([
     db.prepare('SELECT * FROM picks WHERE round_id = ?1 ORDER BY position').bind(round.id).all(),
-    db.prepare(
-      `SELECT (SELECT MAX(number) FROM rounds WHERE number < ?1) AS prev,
-              (SELECT MIN(number) FROM rounds WHERE number > ?1) AS next`,
-    ).bind(round.number).first(),
+    neighbours(db, round),
   ]);
 
   const unsettled = rows.filter((row) => !row.result);
@@ -113,11 +126,11 @@ export async function getRound(env, number) {
   }
 
   return {
-    round: { number: round.number, theGuy: round.the_guy, status: round.status },
+    round: { season: round.season, number: round.number, theGuy: round.the_guy, status: round.status },
     picks: rows.map(toPick),
     events,
-    prev: neighbours?.prev ?? null,
-    next: neighbours?.next ?? null,
+    prev,
+    next,
     ...(warning && { warning }),
   };
 }
@@ -125,7 +138,7 @@ export async function getRound(env, number) {
 /** History list, newest first. Uses stored data only (no ESPN calls). */
 export async function listRounds(db) {
   const [{ results: rounds }, { results: picks }] = await Promise.all([
-    db.prepare('SELECT * FROM rounds ORDER BY number DESC').all(),
+    db.prepare('SELECT * FROM rounds ORDER BY season DESC, number DESC').all(),
     db.prepare(`SELECT round_id, picker, result, json_extract(snapshot, '$.kickoff') AS kickoff FROM picks ORDER BY round_id, position`).all(),
   ]);
 
@@ -134,6 +147,7 @@ export async function listRounds(db) {
     const kickoffs = own.map((p) => p.kickoff).sort();
 
     return {
+      season: round.season,
       number: round.number,
       theGuy: round.the_guy,
       status: round.status,
@@ -148,29 +162,40 @@ export async function listRounds(db) {
   });
 }
 
-/** Per-person record from settled, non-void picks. */
-export async function leaderboard(db) {
-  const [{ results: settled }, { results: guys }] = await Promise.all([
-    db.prepare(
+/**
+ * Per-person record from settled, non-void picks — for one season, or all time when season is null.
+ * @returns {Promise<{seasons: string[], season: string|null, people: Array}>}
+ */
+export async function leaderboard(db, season = null) {
+  const bySeason = (sql) => (season ? db.prepare(sql).bind(season) : db.prepare(sql));
+
+  const [{ results: seasons }, { results: settled }, { results: guys }] = await Promise.all([
+    db.prepare('SELECT DISTINCT season FROM rounds ORDER BY season DESC').all(),
+    bySeason(
       `SELECT p.picker, p.result FROM picks p JOIN rounds r ON r.id = p.round_id
-       WHERE p.result IN ('won', 'drew', 'lost') ORDER BY r.number, p.position`,
+       WHERE p.result IN ('won', 'drew', 'lost') ${season ? 'AND r.season = ?1' : ''}
+       ORDER BY r.season, r.number, p.position`,
     ).all(),
-    db.prepare('SELECT the_guy, COUNT(*) AS total FROM rounds GROUP BY the_guy').all(),
+    bySeason(`SELECT the_guy, COUNT(*) AS total FROM rounds ${season ? 'WHERE season = ?1' : ''} GROUP BY the_guy`).all(),
   ]);
 
-  return PEOPLE.map(({ name }) => {
-    const results = settled.filter((s) => s.picker === name).map((s) => s.result);
+  return {
+    seasons: seasons.map((s) => s.season),
+    season,
+    people: PEOPLE.map(({ name }) => {
+      const results = settled.filter((s) => s.picker === name).map((s) => s.result);
 
-    return {
-      name,
-      played: results.length,
-      won: results.filter((r) => r === 'won').length,
-      drew: results.filter((r) => r === 'drew').length,
-      lost: results.filter((r) => r === 'lost').length,
-      form: results.slice(-5).reverse().map((r) => RESULT_STATUS[r]),
-      guyRounds: guys.find((g) => g.the_guy === name)?.total ?? 0,
-    };
-  });
+      return {
+        name,
+        played: results.length,
+        won: results.filter((r) => r === 'won').length,
+        drew: results.filter((r) => r === 'drew').length,
+        lost: results.filter((r) => r === 'lost').length,
+        form: results.slice(-5).reverse().map((r) => RESULT_STATUS[r]),
+        guyRounds: guys.find((g) => g.the_guy === name)?.total ?? 0,
+      };
+    }),
+  };
 }
 
 /** Check each pick against ESPN and capture a snapshot of the match (teams, crests, kick-off). */
@@ -194,44 +219,55 @@ async function snapshotPicks(env, picks) {
   });
 }
 
-const insertPick = (db, roundId, position, pick) =>
-  db.prepare(
-    `INSERT INTO picks (round_id, position, picker, league, event_id, team_id, snapshot) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
-  ).bind(roundId, position, pick.picker, pick.league, pick.eventId, pick.teamId, pick.snapshot);
+async function assertNumberFree(db, season, number, exceptId = null) {
+  const taken = await db.prepare('SELECT id FROM rounds WHERE season = ?1 AND number = ?2').bind(season, number).first();
+  if (taken && taken.id !== exceptId) {
+    throw new HttpError(409, `Round ${number} already exists in ${season}`);
+  }
+}
 
-/** Start the next round. */
-export async function createRound(env, { theGuy, picks }) {
+/** Next unused number in a season (1 for a new season). */
+export async function nextNumber(db, season) {
+  const row = await db.prepare('SELECT MAX(number) AS number FROM rounds WHERE season = ?1').bind(season).first();
+  return (row?.number ?? 0) + 1;
+}
+
+/** Start a round. Uses the requested number, or the next free one in the season. */
+export async function createRound(env, { season, number, theGuy, picks }) {
   const db = env.DB;
   const withSnapshots = await snapshotPicks(env, picks);
-  const latest = await db.prepare('SELECT MAX(number) AS number FROM rounds').first();
-  const number = (latest?.number ?? 0) + 1;
+  const roundNumber = number ?? (await nextNumber(db, season));
+  await assertNumberFree(db, season, roundNumber);
 
   // One batch = one transaction: the round and its picks land together or not at all.
-  // A concurrent save racing for the same number fails on the UNIQUE constraint and rolls back.
+  // A concurrent save racing for the same number fails on UNIQUE(season, number) and rolls back.
   await db.batch([
-    db.prepare('INSERT INTO rounds (number, the_guy) VALUES (?1, ?2)').bind(number, theGuy),
+    db.prepare('INSERT INTO rounds (season, number, the_guy) VALUES (?1, ?2, ?3)').bind(season, roundNumber, theGuy),
     ...withSnapshots.map((pick, i) =>
       db.prepare(
         `INSERT INTO picks (round_id, position, picker, league, event_id, team_id, snapshot)
-         VALUES ((SELECT id FROM rounds WHERE number = ?1), ?2, ?3, ?4, ?5, ?6, ?7)`,
-      ).bind(number, i, pick.picker, pick.league, pick.eventId, pick.teamId, pick.snapshot),
+         VALUES ((SELECT id FROM rounds WHERE season = ?1 AND number = ?2), ?3, ?4, ?5, ?6, ?7, ?8)`,
+      ).bind(season, roundNumber, i, pick.picker, pick.league, pick.eventId, pick.teamId, pick.snapshot),
     ),
   ]);
 
-  return { number };
+  return { season, number: roundNumber };
 }
 
 /**
- * Replace a round's picks. Picks whose match and team are unchanged keep their frozen results,
- * so correcting a typo in an old round doesn't lose its scores.
+ * Update a round, including moving it to another season / number. Picks whose match and team
+ * are unchanged keep their frozen results, so correcting an old round doesn't lose its scores.
  */
-export async function updateRound(env, number, { theGuy, picks }) {
+export async function updateRound(env, key, { season, number, theGuy, picks }) {
   const db = env.DB;
-  const round = await findRound(db, number);
+  const round = await findRound(db, key);
 
   if (!round) {
-    throw new HttpError(404, `Round ${number} not found`);
+    throw new HttpError(404, `Round ${key.number} (${key.season}) not found`);
   }
+
+  const target = { season, number: number ?? round.number };
+  await assertNumberFree(db, target.season, target.number, round.id);
 
   const { results: existing } = await db.prepare('SELECT * FROM picks WHERE round_id = ?1').bind(round.id).all();
   const keep = (pick) => existing.find((row) => row.event_id === pick.eventId && row.team_id === pick.teamId);
@@ -251,16 +287,23 @@ export async function updateRound(env, number, { theGuy, picks }) {
         ).bind(round.id, i, pick.picker, kept.league, kept.event_id, kept.team_id, kept.snapshot, kept.home_score, kept.away_score, kept.result, kept.settled_at),
       );
     } else {
-      statements.push(insertPick(db, round.id, i, snapshots.find((s) => s.eventId === pick.eventId && s.teamId === pick.teamId)));
+      const snapshot = snapshots.find((s) => s.eventId === pick.eventId && s.teamId === pick.teamId);
+      statements.push(
+        db.prepare(
+          `INSERT INTO picks (round_id, position, picker, league, event_id, team_id, snapshot) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
+        ).bind(round.id, i, pick.picker, pick.league, pick.eventId, pick.teamId, snapshot.snapshot),
+      );
     }
   });
 
-  // Re-open the round if a new, unsettled pick was added; getRound will mark it complete again when due.
+  // Re-open the round if a new, unsettled pick was added; getRound marks it complete again when due.
   const status = picks.every((pick) => keep(pick)?.result) ? 'complete' : 'open';
   statements.push(
-    db.prepare(`UPDATE rounds SET the_guy = ?1, status = ?2, updated_at = datetime('now') WHERE id = ?3`).bind(theGuy, status, round.id),
+    db.prepare(
+      `UPDATE rounds SET season = ?1, number = ?2, the_guy = ?3, status = ?4, updated_at = datetime('now') WHERE id = ?5`,
+    ).bind(target.season, target.number, theGuy, status, round.id),
   );
 
   await db.batch(statements);
-  return { number: round.number };
+  return target;
 }

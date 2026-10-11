@@ -5,6 +5,7 @@ import { addDays, fetchEventsFor, normaliseEvent } from '../src/server/lib/espn.
 import { HttpError } from '../src/server/lib/http.js';
 import { resultFor } from '../src/server/lib/rounds.js';
 import { validateRound } from '../src/server/lib/validate.js';
+import { isSeason, roundPath, seasonFor, seasonFromSlug, seasonSlug } from '../public/js/season.js';
 
 const scoreboard = JSON.parse(readFileSync(new URL('./fixtures/espn-scoreboard.json', import.meta.url)));
 const [live, halftime, fullTime, postponed, scheduled] = scoreboard.events.map((e) => normaliseEvent(e, 'eng.1'));
@@ -87,28 +88,64 @@ describe('resultFor', () => {
   });
 });
 
+describe('seasons', () => {
+  it('runs July to June', () => {
+    assert.equal(seasonFor('2026-10-10'), '2026/27');
+    assert.equal(seasonFor('2027-03-06'), '2026/27');
+    assert.equal(seasonFor('2026-07-01'), '2026/27');
+    assert.equal(seasonFor('2026-06-30'), '2025/26');
+    assert.equal(seasonFor('2099-08-01'), '2099/00');
+  });
+
+  it('validates the 2026/27 format with consecutive years', () => {
+    assert.ok(isSeason('2026/27'));
+    assert.ok(isSeason('2099/00'));
+    assert.ok(!isSeason('2026/28'));
+    assert.ok(!isSeason('2026-27'));
+    assert.ok(!isSeason('26/27'));
+    assert.ok(!isSeason(undefined));
+  });
+
+  it('round-trips URL slugs', () => {
+    assert.equal(seasonSlug('2026/27'), '2026-27');
+    assert.equal(seasonFromSlug('2026-27'), '2026/27');
+    assert.equal(roundPath({ season: '2026/27', number: 9 }), '/round/2026-27/9');
+  });
+});
+
 describe('validateRound', () => {
   const pick = { picker: 'Chris', league: 'eng.1', date: '2026-10-17', eventId: '740001', teamId: '359' };
+  const base = { season: '2026/27', theGuy: 'Paul', picks: [pick] };
 
   it('accepts a valid round and normalises ids to strings', () => {
-    const round = validateRound({ theGuy: 'Paul', picks: [{ ...pick, eventId: 740001, teamId: 359 }] });
-    assert.deepEqual(round, { theGuy: 'Paul', picks: [pick] });
+    const round = validateRound({ ...base, number: '9', picks: [{ ...pick, eventId: 740001, teamId: 359 }] });
+    assert.deepEqual(round, { season: '2026/27', number: 9, theGuy: 'Paul', picks: [pick] });
+  });
+
+  it('treats a missing round number as "next free number"', () => {
+    assert.equal(validateRound(base).number, null);
+    assert.equal(validateRound({ ...base, number: '' }).number, null);
   });
 
   it('rejects bad input with a 422 naming the problem', () => {
     const cases = [
-      [{ theGuy: 'Bob', picks: [pick] }, /The Guy/],
-      [{ theGuy: 'Paul', picks: [] }, /at least one/],
-      [{ theGuy: 'Paul', picks: [{ ...pick, picker: 'Bob' }] }, /Game 1: choose who/],
-      [{ theGuy: 'Paul', picks: [{ ...pick, league: 'usa.1' }] }, /unknown league/],
-      [{ theGuy: 'Paul', picks: [{ ...pick, date: '17/10/2026' }] }, /invalid date/],
-      [{ theGuy: 'Paul', picks: [pick, { ...pick, eventId: 'x' }] }, /Game 2: choose a match/],
-      [{ theGuy: 'Paul', picks: [{ ...pick, teamId: '' }] }, /choose a team/],
-      [{ theGuy: 'Paul', picks: Array(11).fill(pick) }, /No more than 10/],
+      [{ ...base, season: '2026/28' }, /Season/],
+      [{ ...base, season: undefined }, /Season/],
+      [{ ...base, number: 0 }, /Round number/],
+      [{ ...base, number: 2.5 }, /Round number/],
+      [{ ...base, number: 1000 }, /Round number/],
+      [{ ...base, theGuy: 'Bob' }, /The Guy/],
+      [{ ...base, picks: [] }, /at least one/],
+      [{ ...base, picks: [{ ...pick, picker: 'Bob' }] }, /Game 1: choose who/],
+      [{ ...base, picks: [{ ...pick, league: 'usa.1' }] }, /unknown league/],
+      [{ ...base, picks: [{ ...pick, date: '17/10/2026' }] }, /invalid date/],
+      [{ ...base, picks: [pick, { ...pick, eventId: 'x' }] }, /Game 2: choose a match/],
+      [{ ...base, picks: [{ ...pick, teamId: '' }] }, /choose a team/],
+      [{ ...base, picks: Array(11).fill(pick) }, /No more than 10/],
     ];
 
     for (const [body, message] of cases) {
-      assert.throws(() => validateRound(body), (error) => error instanceof HttpError && error.status === 422 && message.test(error.message));
+      assert.throws(() => validateRound(body), (error) => error instanceof HttpError && error.status === 422 && message.test(error.message), JSON.stringify(body).slice(0, 80));
     }
   });
 });
