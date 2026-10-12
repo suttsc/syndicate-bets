@@ -149,6 +149,8 @@ function render() {
   });
 
   $('slots').innerHTML = state.slots.map(slotCard).join('');
+  // One pick per person, so stop offering more games once everyone has one.
+  $('add-slot').hidden = state.slots.length >= PEOPLE.length;
   renderStatus();
 }
 

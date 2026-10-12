@@ -71,9 +71,9 @@ function renderRoundHead(round, rows, summary, prev, next) {
   $('round-head').innerHTML = `
     ${arrow(prev, 'prev')}
     <div class="min-w-0 text-center">
-      <p class="text-[7.5px] font-semibold tracking-[0.35em] text-zinc-500 uppercase">${esc(round.season)} · Round</p>
-      <h1 class="grad-win text-grad font-display text-6xl leading-none font-bold tracking-tight tabular">${round.number}</h1>
-      <p class="mt-1.5 text-sm text-zinc-400">${esc(dateRange(kickoffs[0], kickoffs.at(-1)))}${live}</p>
+      <p class="text-[10px] font-semibold tracking-[0.3em] text-zinc-500">${esc(round.season)}</p>
+      <h1 class="mt-1 font-display text-[16px] leading-tight font-bold tracking-tight">Round <span class="grad-win text-grad tabular">${round.number}</span></h1>
+      <p class="mt-1 text-[10px] text-zinc-400">${esc(dateRange(kickoffs[0], kickoffs.at(-1)))}${live}</p>
     </div>
     ${arrow(next, 'next')}`;
 }
