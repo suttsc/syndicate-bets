@@ -24,11 +24,11 @@ function row(person, position) {
         </div>
         <div class="shrink-0 text-right">
           <p class="font-display text-3xl leading-none font-bold tabular"><span class="${leader ? 'grad-win text-grad' : ''}">${winRate(person)}</span><span class="text-base text-zinc-500">%</span></p>
-          <p class="mt-1 text-[11px] text-zinc-500 tabular">${person.won} of ${person.played}</p>
+          <p class="mt-1 text-[7.5px] text-zinc-500 tabular">${person.won} of ${person.played}</p>
         </div>
       </div>
       <div class="relative mt-3 flex items-center gap-1.5 border-t border-white/[0.06] pt-3">
-        <p class="mr-1 text-[10px] font-semibold tracking-wider text-zinc-500 uppercase">Form</p>
+        <p class="mr-1 text-[6.5px] font-semibold tracking-wider text-zinc-500 uppercase">Form</p>
         ${person.form.map((status) => resultDot(status, undefined, 'size-6')).join('')}
       </div>
     </li>`;

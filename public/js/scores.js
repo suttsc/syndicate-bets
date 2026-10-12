@@ -34,7 +34,7 @@ async function refresh() {
     });
     const summary = summarise(rows.map((r) => r.result));
 
-    document.title = `Bets · Round ${round.number} · ${round.season}`;
+    document.title = `Syndicate Bets · Round ${round.number} · ${round.season}`;
     renderRoundHead(round, rows, summary, prev, next);
     renderSummary(summary);
     $('games').innerHTML = rows.map((row) => gameCard(row, round.theGuy)).join('');
@@ -71,7 +71,7 @@ function renderRoundHead(round, rows, summary, prev, next) {
   $('round-head').innerHTML = `
     ${arrow(prev, 'prev')}
     <div class="min-w-0 text-center">
-      <p class="text-[11px] font-semibold tracking-[0.35em] text-zinc-500 uppercase">${esc(round.season)} · Round</p>
+      <p class="text-[7.5px] font-semibold tracking-[0.35em] text-zinc-500 uppercase">${esc(round.season)} · Round</p>
       <h1 class="grad-win text-grad font-display text-6xl leading-none font-bold tracking-tight tabular">${round.number}</h1>
       <p class="mt-1.5 text-sm text-zinc-400">${esc(dateRange(kickoffs[0], kickoffs.at(-1)))}${live}</p>
     </div>
@@ -89,7 +89,7 @@ function renderSummary(summary) {
     $('summary').innerHTML = `
       <div class="glass ${good ? 'glow-win' : 'glow-lose'} relative overflow-hidden rounded-xs p-5">
         <div class="${grad} absolute -top-24 -right-20 size-56 rounded-full opacity-25 blur-3xl"></div>
-        <p class="text-[11px] font-semibold tracking-[0.3em] text-zinc-400 uppercase">Full time</p>
+        <p class="text-[7.5px] font-semibold tracking-[0.3em] text-zinc-400 uppercase">Full time</p>
         <p class="mt-1 font-display font-bold tracking-tight">
           <span class="${grad} text-grad text-6xl tabular">${summary.won}</span>
           <span class="text-2xl text-zinc-400">of ${summary.settledTotal} won</span>
@@ -107,7 +107,7 @@ function renderSummary(summary) {
       <div class="glass relative overflow-hidden rounded-xs px-2 py-3 text-center">
         ${value ? `<span class="${style.grad} absolute -top-10 left-1/2 size-20 -translate-x-1/2 rounded-full opacity-20 blur-2xl"></span>` : ''}
         <p class="relative font-display text-4xl font-bold tabular ${value ? `${style.grad} text-grad` : 'text-zinc-700'}">${value}</p>
-        <p class="relative text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">${style.label}</p>
+        <p class="relative text-[7.5px] font-semibold tracking-wider text-zinc-400 uppercase">${style.label}</p>
       </div>`;
   };
 
@@ -157,7 +157,7 @@ function gameCard({ pick, event, result }, theGuy) {
         ${crest(team)}
         <p class="min-w-0 flex-1 truncate ${backed ? 'font-semibold text-white' : 'text-zinc-400'}">
           ${esc(team.name)}
-          ${backed ? '<span class="ml-1 rounded-xs bg-white/10 px-1.5 py-0.5 align-middle text-[10px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
+          ${backed ? '<span class="ml-1 rounded-xs bg-white/10 px-1.5 py-0.5 align-middle text-[6.5px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
         </p>
         <p class="w-8 text-right font-display text-3xl font-bold tabular ${backed ? 'text-white' : 'text-zinc-500'}">${showScore ? esc(team.score) : ''}</p>
       </div>`;
@@ -175,7 +175,7 @@ function gameCard({ pick, event, result }, theGuy) {
         ${teamRow(event.away)}
       </div>
       <div class="relative flex items-center justify-between gap-2 border-t border-white/[0.06] px-4 py-2.5">
-        <p class="truncate text-[11px] font-semibold tracking-wider text-zinc-500 uppercase">${esc(leagueName(event.league))}</p>
+        <p class="truncate text-[7.5px] font-semibold tracking-wider text-zinc-500 uppercase">${esc(leagueName(event.league))}</p>
         ${statusPill(result)}
       </div>
     </article>`;

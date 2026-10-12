@@ -2,17 +2,17 @@
 <html lang="en-GB">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#050706" />
     <meta name="robots" content="noindex" />
-    <title>Bets · Admin</title>
+    <title>Syndicate Bets · Admin</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>" />
     <link rel="preload" href="/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/assets/app.css" />
     <script type="module" src="/js/admin.js"></script>
   </head>
   <body>
-    <div class="mx-auto max-w-xl px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-36">
+    <div class="mx-auto max-w-xl px-4 pt-[max(10.5px,env(safe-area-inset-top))] pb-36">
       <header class="flex items-center gap-3">
         <a href="/" aria-label="Back to scores" class="glass grid size-10 place-items-center rounded-xs text-zinc-300 active:scale-90">
           <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
@@ -30,14 +30,14 @@
       <section id="round-meta" class="glass mt-3 rounded-xs p-4"></section>
 
       <label class="glass mt-3 block rounded-xs p-4">
-        <span class="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">Admin password</span>
+        <span class="text-[7.5px] font-semibold tracking-wider text-zinc-400 uppercase">Admin password</span>
         <input id="password" type="password" autocomplete="current-password" placeholder="Remembered on this device"
           class="mt-2 block h-12 w-full rounded-xs border-0 bg-white/5 px-3 text-base text-white ring-1 ring-white/10 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-emerald-400" />
       </label>
 
       <fieldset class="glass mt-3 rounded-xs p-4">
         <legend class="sr-only">The Guy this round</legend>
-        <p class="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase"><span aria-hidden="true">👑</span> The Guy this round</p>
+        <p class="text-[7.5px] font-semibold tracking-wider text-zinc-400 uppercase"><span aria-hidden="true">👑</span> The Guy this round</p>
         <div id="the-guy" class="mt-2 grid grid-cols-4 gap-2"></div>
       </fieldset>
 
@@ -49,7 +49,7 @@
     </div>
 
     <!-- Thumb-reachable save bar -->
-    <div class="fixed inset-x-0 bottom-0 border-t border-white/10 bg-black/70 px-4 pt-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+    <div class="fixed inset-x-0 bottom-0 border-t border-white/10 bg-black/70 px-4 pt-3 pb-[max(8px,env(safe-area-inset-bottom))] backdrop-blur-xl">
       <div class="mx-auto flex max-w-xl items-center gap-3">
         <p id="save-status" role="status" class="min-w-0 flex-1 text-sm text-zinc-400"></p>
         <button id="save" type="button"

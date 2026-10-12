@@ -1,4 +1,4 @@
-# Football Bets — Plan
+# Syndicate Bets — Plan
 
 Live site: **https://bets.chrissutton.co.uk**
 

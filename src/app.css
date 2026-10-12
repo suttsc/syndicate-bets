@@ -22,6 +22,20 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
 
+  /* Compact scale: two thirds of Tailwind's defaults (font sizes rounded to the nearest half pixel).
+     Spacing drives padding, margins, gaps, widths and heights; line heights are ratios so they follow. */
+  --spacing: calc(0.25rem * 2 / 3);
+  --text-xs: 0.5rem; /* 8px */
+  --text-sm: 0.59375rem; /* 9.5px */
+  --text-base: 0.65625rem; /* 10.5px */
+  --text-lg: 0.75rem; /* 12px */
+  --text-xl: 0.84375rem; /* 13.5px */
+  --text-2xl: 1rem; /* 16px */
+  --text-3xl: 1.25rem; /* 20px */
+  --text-4xl: 1.5rem; /* 24px */
+  --text-5xl: 2rem; /* 32px */
+  --text-6xl: 2.5rem; /* 40px */
+
   /* Near-black canvas and glass surfaces */
   --color-ink: #050706;
   --color-surface: rgb(255 255 255 / 0.035);
@@ -46,7 +60,7 @@
   }
 
   body {
-    @apply min-h-dvh bg-ink font-sans text-zinc-100 antialiased;
+    @apply min-h-dvh bg-ink font-sans text-base text-zinc-100 antialiased;
     background-image:
       radial-gradient(60rem 30rem at 50% -12rem, rgb(16 185 129 / 0.22), transparent 70%),
       radial-gradient(40rem 24rem at 110% 10%, rgb(163 230 53 / 0.07), transparent 70%);

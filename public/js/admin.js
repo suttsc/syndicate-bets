@@ -34,7 +34,7 @@ const state = {
 const allFixtures = new Map();
 
 const FIELD = 'mt-2 block h-12 w-full rounded-xs border-0 bg-white/5 px-3 text-base text-white ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-emerald-400';
-const LABEL = 'text-[11px] font-semibold tracking-wider text-zinc-400 uppercase';
+const LABEL = 'text-[7.5px] font-semibold tracking-wider text-zinc-400 uppercase';
 
 const localDate = (iso) => new Date(iso).toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
 
@@ -257,7 +257,7 @@ function slotCard(slot, index) {
         <div id="suggest-${index}" role="listbox" class="mt-2 space-y-1 empty:hidden"></div>
       </div>
 
-      <p class="mt-4 flex items-center gap-3 text-[11px] font-semibold tracking-wider text-zinc-600 uppercase">
+      <p class="mt-4 flex items-center gap-3 text-[7.5px] font-semibold tracking-wider text-zinc-600 uppercase">
         <span class="h-px flex-1 bg-white/10"></span>or choose by league<span class="h-px flex-1 bg-white/10"></span>
       </p>
 

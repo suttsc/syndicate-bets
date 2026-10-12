@@ -15,7 +15,7 @@ export const STATUS_STYLES = {
 
 /** Team crest, falling back to a coloured initials badge when there is no logo (or it fails to load). */
 export function crest(team, size = 'size-9') {
-  const badge = `<span class="${size} grid shrink-0 place-items-center rounded-full text-[10px] font-bold tracking-wide text-white ring-1 ring-white/15" style="background:${esc(team.color ?? '#3f3f46')}">${esc(team.abbr ?? team.name.slice(0, 3).toUpperCase())}</span>`;
+  const badge = `<span class="${size} grid shrink-0 place-items-center rounded-full text-[6.5px] font-bold tracking-wide text-white ring-1 ring-white/15" style="background:${esc(team.color ?? '#3f3f46')}">${esc(team.abbr ?? team.name.slice(0, 3).toUpperCase())}</span>`;
 
   if (!team.logo) {
     return badge;
@@ -28,7 +28,7 @@ export const avatar = (name, size = 'size-7 text-xs') =>
   `<span class="${size} grid shrink-0 place-items-center rounded-full font-bold text-white ring-2 ring-black/40" style="background:${esc(personColor(name))}">${esc(name[0])}</span>`;
 
 export const theGuyBadge = () =>
-  '<span class="grad-guy inline-flex shrink-0 items-center gap-1 rounded-xs px-2 py-0.5 text-[11px] font-bold tracking-wider text-black uppercase shadow-[0_4px_16px_-4px_rgb(249_115_22/0.7)]"><span aria-hidden="true">👑</span>The Guy</span>';
+  '<span class="grad-guy inline-flex shrink-0 items-center gap-1 rounded-xs px-2 py-0.5 text-[7.5px] font-bold tracking-wider text-black uppercase shadow-[0_4px_16px_-4px_rgb(249_115_22/0.7)]"><span aria-hidden="true">👑</span>The Guy</span>';
 
 /** Who made a pick: avatar + name, plus the badge for this round's Guy. */
 export function picker(name, isTheGuy) {
@@ -55,7 +55,7 @@ export function statusPill(result) {
 export function resultDot(status, label = STATUS_STYLES[status].short, size = 'size-7') {
   const style = STATUS_STYLES[status];
   const muted = style.grad === 'grad-muted';
-  return `<span class="${style.grad} ${size} grid shrink-0 place-items-center rounded-full text-[11px] font-black ${muted ? 'text-zinc-400' : 'text-black'}">${esc(label)}</span>`;
+  return `<span class="${style.grad} ${size} grid shrink-0 place-items-center rounded-full text-[7.5px] font-black ${muted ? 'text-zinc-400' : 'text-black'}">${esc(label)}</span>`;
 }
 
 export const kickoffTime = (iso) =>
@@ -97,7 +97,7 @@ export function mountTabbar(active) {
       ${TABS.map((tab) => {
         const on = tab.key === active;
         return `
-          <a href="${tab.href}" ${on ? 'aria-current="page"' : ''} class="relative flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${on ? 'text-white' : 'text-zinc-500'}">
+          <a href="${tab.href}" ${on ? 'aria-current="page"' : ''} class="relative flex h-16 flex-col items-center justify-center gap-1 text-[7.5px] font-semibold ${on ? 'text-white' : 'text-zinc-500'}">
             ${on ? '<span class="grad-win absolute top-0 h-0.5 w-10"></span>' : ''}
             <svg class="size-6 ${on ? 'text-emerald-400' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${tab.icon}</svg>
             ${tab.label}
@@ -111,5 +111,5 @@ export function mountTabbar(active) {
 export const brand = () => `
   <a href="/" class="flex items-center gap-2 font-display text-sm font-bold tracking-wide text-zinc-300">
     <span class="grad-win grid size-7 place-items-center rounded-xs text-base shadow-[0_4px_20px_-4px_rgb(16_185_129/0.8)]">⚽</span>
-    BETS
+    SYNDICATE BETS
   </a>`;
