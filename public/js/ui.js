@@ -110,6 +110,6 @@ export function mountTabbar(active) {
 /** Shared top bar: brand on the left, optional actions on the right. */
 export const brand = () => `
   <a href="/" class="flex items-center gap-2 font-display text-sm font-bold tracking-wide text-zinc-300">
-    <span class="grad-win grid size-7 place-items-center rounded-xs text-base shadow-[0_4px_20px_-4px_rgb(16_185_129/0.8)]">⚽</span>
+    <img src="/img/logo.png" alt="" width="256" height="256" class="size-9">
     SYNDICATE BETS
   </a>`;
