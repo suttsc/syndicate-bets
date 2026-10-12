@@ -70,7 +70,8 @@ npm test
 3. **Connect GitHub** — Worker → *Settings* → *Build* → *Connect* → GitHub → `suttsc/syndicate-bets`,
    branch `main`.
    - Build command: *(leave empty — Wrangler builds the CSS itself)*
-   - Deploy command: `npm run deploy` (applies any new database migrations, then deploys)
+   - Deploy command: `npm run deploy` (applies database migrations, then deploys). `npx wrangler deploy`
+     also works — the Worker creates missing tables on its own.
 
 4. **Set the admin password** — Worker → *Settings* → *Variables and Secrets* → *Add* → type **Secret**,
    name `ADMIN_PASSWORD`. Secrets survive future deploys.
@@ -80,9 +81,9 @@ npm test
 
 Then push any commit (or *Deployments* → *Retry build*) to deploy. Every push to `main` redeploys.
 
-If the build log shows the migration step failing on permissions, create the tables by hand once:
-*D1* → `syndicate-bets` → *Console* → paste `migrations/0001_initial_schema.sql` → *Execute*, and set the deploy
-command to `npx wrangler deploy`.
+The Worker also creates any missing tables itself on its first API request (it runs the same
+`migrations/0001_initial_schema.sql`, whose statements are all `IF NOT EXISTS`). So a fresh or emptied
+database fixes itself after a deploy and one visit to the site, even if the migration step didn't run.
 
 ## Changing people or leagues
 

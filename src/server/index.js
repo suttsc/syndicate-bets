@@ -1,6 +1,7 @@
 // Worker entry point. Static files in /public are served by Cloudflare's asset handling;
 // only /api/* requests reach this code (see run_worker_first in wrangler.toml).
 import { HttpError, json } from './lib/http.js';
+import { ensureSchema } from './lib/schema.js';
 import * as fixtures from './routes/fixtures.js';
 import * as leaderboard from './routes/leaderboard.js';
 import * as rounds from './routes/rounds.js';
@@ -41,6 +42,7 @@ export default {
 
     try {
       const { handler, params } = route(request);
+      await ensureSchema(env.DB);
       return await handler({ request, env, ctx, params });
     } catch (error) {
       if (error instanceof HttpError) {

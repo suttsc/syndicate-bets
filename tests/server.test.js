@@ -5,6 +5,7 @@ import { addDays, fetchEventsFor, normaliseEvent } from '../src/server/lib/espn.
 import { HttpError } from '../src/server/lib/http.js';
 import { resultFor } from '../src/server/lib/rounds.js';
 import { validateRound } from '../src/server/lib/validate.js';
+import { splitStatements } from '../src/server/lib/sql.js';
 import { isSeason, roundPath, seasonFor, seasonFromSlug, seasonSlug } from '../public/js/season.js';
 
 const scoreboard = JSON.parse(readFileSync(new URL('./fixtures/espn-scoreboard.json', import.meta.url)));
@@ -147,5 +148,21 @@ describe('validateRound', () => {
     for (const [body, message] of cases) {
       assert.throws(() => validateRound(body), (error) => error instanceof HttpError && error.status === 422 && message.test(error.message), JSON.stringify(body).slice(0, 80));
     }
+  });
+});
+
+describe('schema', () => {
+  const sql = readFileSync(new URL('../migrations/0001_initial_schema.sql', import.meta.url), 'utf8');
+  const statements = splitStatements(sql);
+
+  it('splits the migration into idempotent statements without comments', () => {
+    assert.ok(statements.length >= 5);
+    assert.ok(statements.every((s) => !s.includes('--') && !s.includes(';')));
+    assert.ok(statements.every((s) => /IF (NOT )?EXISTS/.test(s)), 'every statement must be safe to re-run');
+  });
+
+  it('creates rounds with a per-season round number', () => {
+    const rounds = statements.find((s) => s.startsWith('CREATE TABLE IF NOT EXISTS rounds'));
+    assert.match(rounds, /UNIQUE \(season, number\)/);
   });
 });
