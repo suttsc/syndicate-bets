@@ -27,7 +27,7 @@ function row(person, position) {
           <p class="mt-1 text-[7.5px] text-zinc-500 tabular">${person.won} of ${person.played}</p>
         </div>
       </div>
-      <div class="relative mt-3 flex items-center gap-1.5 border-t border-white/[0.06] pt-3">
+      <div class="relative mt-3 flex items-center gap-1.5 border-t border-tint/[0.06] pt-3">
         <p class="mr-1 text-[6.5px] font-semibold tracking-wider text-zinc-500 uppercase">Form</p>
         ${person.form.map((status) => resultDot(status, undefined, 'size-6')).join('')}
       </div>

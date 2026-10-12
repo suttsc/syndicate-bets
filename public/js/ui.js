@@ -15,7 +15,7 @@ export const STATUS_STYLES = {
 
 /** Team crest, falling back to a coloured initials badge when there is no logo (or it fails to load). */
 export function crest(team, size = 'size-9') {
-  const badge = `<span class="${size} grid shrink-0 place-items-center rounded-full text-[6.5px] font-bold tracking-wide text-white ring-1 ring-white/15" style="background:${esc(team.color ?? '#3f3f46')}">${esc(team.abbr ?? team.name.slice(0, 3).toUpperCase())}</span>`;
+  const badge = `<span class="${size} grid shrink-0 place-items-center rounded-full text-[6.5px] font-bold tracking-wide text-white ring-1 ring-tint/15" style="background:${esc(team.color ?? '#3f3f46')}">${esc(team.abbr ?? team.name.slice(0, 3).toUpperCase())}</span>`;
 
   if (!team.logo) {
     return badge;
@@ -25,7 +25,7 @@ export function crest(team, size = 'size-9') {
 }
 
 export const avatar = (name, size = 'size-7 text-xs') =>
-  `<span class="${size} grid shrink-0 place-items-center rounded-full font-bold text-white ring-2 ring-black/40" style="background:${esc(personColor(name))}">${esc(name[0])}</span>`;
+  `<span class="${size} grid shrink-0 place-items-center rounded-full font-bold text-white ring-2 ring-ink/60" style="background:${esc(personColor(name))}">${esc(name[0])}</span>`;
 
 export const theGuyBadge = () =>
   '<span class="grad-guy inline-flex shrink-0 items-center gap-1 rounded-xs px-2 py-0.5 text-[7.5px] font-bold tracking-wider text-black uppercase shadow-[0_4px_16px_-4px_rgb(249_115_22/0.7)]"><span aria-hidden="true">👑</span>The Guy</span>';
@@ -91,13 +91,13 @@ const TABS = [
 export function mountTabbar(active) {
   const nav = document.createElement('nav');
   nav.setAttribute('aria-label', 'Main');
-  nav.className = 'fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-black/70 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl';
+  nav.className = 'fixed inset-x-0 bottom-0 z-20 border-t border-tint/10 bg-ink/70 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl';
   nav.innerHTML = `
     <div class="mx-auto grid max-w-md grid-cols-3">
       ${TABS.map((tab) => {
         const on = tab.key === active;
         return `
-          <a href="${tab.href}" ${on ? 'aria-current="page"' : ''} class="relative flex h-16 flex-col items-center justify-center gap-1 text-[7.5px] font-semibold ${on ? 'text-white' : 'text-zinc-500'}">
+          <a href="${tab.href}" ${on ? 'aria-current="page"' : ''} class="relative flex h-16 flex-col items-center justify-center gap-1 text-[7.5px] font-semibold ${on ? 'text-fg' : 'text-zinc-500'}">
             ${on ? '<span class="grad-win absolute top-0 h-0.5 w-10"></span>' : ''}
             <svg class="size-6 ${on ? 'text-emerald-400' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${tab.icon}</svg>
             ${tab.label}

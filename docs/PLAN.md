@@ -15,7 +15,7 @@ Chris, Jamie, Paul and Steve each back one team to win per **round** (a round ca
 | Database | **Cloudflare D1** (SQLite), binding `DB` | Free (5 GB, 5M reads/day, 100k writes/day); keeps every round. Replaces the earlier KV idea, which could only hold the current round |
 | Scores | **ESPN public API**, called server-side with ~30 s edge cache | Free, no key, covers all needed leagues; unofficial, so isolated in one module |
 | Admin auth | `ADMIN_PASSWORD` secret, sent as `Authorization: Bearer …`, constant-time compare | Simple, nothing exposed to visitors |
-| Design | Mobile-first, **dark only**: near-black canvas, green glow, glass cards with sharp 2px corners; results shown by a coloured glow (no top strips). Gradients: green (win), yellow (draw), red (lose), orange (The Guy). Fonts Space Grotesk + Inter, **self-hosted** in `public/fonts` | Mostly viewed on phones; modern look |
+| Design | Mobile-first, **dark by default with a light mode** (toggle top right, remembered per device; colours are theme tokens in `src/app.css`): near-black canvas, green glow, glass cards with sharp 2px corners, a compact scale (two thirds of Tailwind defaults); results shown by a coloured glow (no top strips). Gradients: green (win), yellow (draw), red (lose), orange (The Guy). Fonts Space Grotesk + Inter, **self-hosted** in `public/fonts` | Mostly viewed on phones; modern look |
 
 ## Concepts
 - **Person**: Chris, Jamie, Paul, Steve (list lives in `public/js/config.js` + validated server-side).
@@ -88,6 +88,7 @@ public/
   js/config.js              leagues, people
   js/outcome.js             outcome() + summarise()  (pure, unit-tested)
   js/ui.js                  escaping, crest, picker badge, formatting
+  js/theme.js               light / dark toggle
   js/api.js                 fetch wrappers for /api/*
   js/mock-api.js            sample-data API (?mock)
   js/mock-data.js           sample rounds

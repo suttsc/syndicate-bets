@@ -8,19 +8,26 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>" />
     <link rel="preload" href="/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/assets/app.css" />
+    <script>
+      try { document.documentElement.dataset.theme = localStorage.getItem('theme') === 'light' ? 'light' : 'dark'; } catch {}
+    </script>
+    <script type="module" src="/js/theme.js"></script>
     <script type="module" src="/js/leaderboard.js"></script>
   </head>
   <body>
     <div class="mx-auto max-w-3xl px-4 pt-[max(10.5px,env(safe-area-inset-top))] pb-28">
-      <header id="brand"></header>
+      <header class="flex items-center justify-between">
+        <div id="brand"></div>
+        <button type="button" data-theme-toggle aria-label="Switch theme" class="glass grid size-10 place-items-center rounded-xs text-zinc-300 transition active:scale-90"></button>
+      </header>
       <div class="mt-6">
         <h1 class="font-display text-4xl font-bold tracking-tight">The Table</h1>
         <p class="mt-1 text-sm text-zinc-400">Record from finished games, by season.</p>
       </div>
       <main id="content" class="mt-5 space-y-3">
-        <div class="h-24 animate-pulse rounded-xs bg-white/5"></div>
-        <div class="h-24 animate-pulse rounded-xs bg-white/5"></div>
-        <div class="h-24 animate-pulse rounded-xs bg-white/5"></div>
+        <div class="h-24 animate-pulse rounded-xs bg-tint/5"></div>
+        <div class="h-24 animate-pulse rounded-xs bg-tint/5"></div>
+        <div class="h-24 animate-pulse rounded-xs bg-tint/5"></div>
       </main>
     </div>
   </body>

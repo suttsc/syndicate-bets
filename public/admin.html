@@ -9,6 +9,10 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>" />
     <link rel="preload" href="/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/assets/app.css" />
+    <script>
+      try { document.documentElement.dataset.theme = localStorage.getItem('theme') === 'light' ? 'light' : 'dark'; } catch {}
+    </script>
+    <script type="module" src="/js/theme.js"></script>
     <script type="module" src="/js/admin.js"></script>
   </head>
   <body>
@@ -21,6 +25,7 @@
           <h1 class="font-display text-2xl font-bold tracking-tight">Admin</h1>
           <p id="subtitle" class="text-sm text-zinc-400">&nbsp;</p>
         </div>
+        <div class="ml-auto"><button type="button" data-theme-toggle aria-label="Switch theme" class="glass grid size-10 place-items-center rounded-xs text-zinc-300 transition active:scale-90"></button></div>
       </header>
 
       <!-- New vs edit -->
@@ -32,7 +37,7 @@
       <label class="glass mt-3 block rounded-xs p-4">
         <span class="text-[7.5px] font-semibold tracking-wider text-zinc-400 uppercase">Admin password</span>
         <input id="password" type="password" autocomplete="current-password" placeholder="Remembered on this device"
-          class="mt-2 block h-12 w-full rounded-xs border-0 bg-white/5 px-3 text-base text-white ring-1 ring-white/10 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-emerald-400" />
+          class="mt-2 block h-12 w-full rounded-xs border-0 bg-tint/5 px-3 text-base text-fg ring-1 ring-tint/10 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-emerald-400" />
       </label>
 
       <fieldset class="glass mt-3 rounded-xs p-4">
@@ -43,13 +48,13 @@
 
       <ol id="slots" class="mt-3 space-y-3"></ol>
 
-      <button id="add-slot" type="button" class="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-xs border border-dashed border-white/15 font-semibold text-zinc-400 transition active:scale-[.99]">
+      <button id="add-slot" type="button" class="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-xs border border-dashed border-tint/15 font-semibold text-zinc-400 transition active:scale-[.99]">
         <span class="text-xl leading-none">+</span> Add a game
       </button>
     </div>
 
     <!-- Thumb-reachable save bar -->
-    <div class="fixed inset-x-0 bottom-0 border-t border-white/10 bg-black/70 px-4 pt-3 pb-[max(8px,env(safe-area-inset-bottom))] backdrop-blur-xl">
+    <div class="fixed inset-x-0 bottom-0 border-t border-tint/10 bg-ink/70 px-4 pt-3 pb-[max(8px,env(safe-area-inset-bottom))] backdrop-blur-xl">
       <div class="mx-auto flex max-w-xl items-center gap-3">
         <p id="save-status" role="status" class="min-w-0 flex-1 text-sm text-zinc-400"></p>
         <button id="save" type="button"

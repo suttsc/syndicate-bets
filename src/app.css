@@ -36,10 +36,12 @@
   --text-5xl: 2rem; /* 32px */
   --text-6xl: 2.5rem; /* 40px */
 
-  /* Near-black canvas and glass surfaces */
+  /* Near-black canvas and glass surfaces (light values in the theme block below) */
   --color-ink: #050706;
   --color-surface: rgb(255 255 255 / 0.035);
   --color-line: rgb(255 255 255 / 0.08);
+  --color-fg: #ffffff; /* strongest text */
+  --color-tint: #ffffff; /* overlays: bg-tint/5, ring-tint/10 … */
 
   /* Highlight families — matched brightness so they sit together */
   --color-win-from: #a3e635;
@@ -59,6 +61,42 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Light mode (toggled via data-theme on <html>, see js/theme.js). The zinc greys and the
+     accent steps tuned for a black canvas flip to darker shades so markup needs no light: variants. */
+  html[data-theme="light"] {
+    color-scheme: light;
+
+    --color-ink: #f3f5f4;
+    --color-surface: rgb(255 255 255 / 0.75);
+    --color-line: rgb(0 0 0 / 0.08);
+    --color-fg: #09090b;
+    --color-tint: #000000;
+
+    --color-zinc-100: oklch(21% 0.006 285.885);
+    --color-zinc-200: oklch(27.4% 0.006 286.033);
+    --color-zinc-300: oklch(37% 0.013 285.805);
+    --color-zinc-400: oklch(44.2% 0.017 285.786);
+    --color-zinc-500: oklch(52% 0.016 285.938);
+    --color-zinc-600: oklch(70.5% 0.015 286.067);
+    --color-zinc-700: oklch(80% 0.006 286.286);
+
+    --color-red-200: oklch(50.5% 0.213 27.518);
+    --color-red-300: oklch(50.5% 0.213 27.518);
+    --color-orange-300: oklch(55.3% 0.195 38.402);
+    --color-rose-400: oklch(58.6% 0.253 17.585);
+    --color-emerald-400: oklch(59.6% 0.145 163.225);
+
+    --color-win-from: #65a30d;
+    --color-win-via: #10b981;
+    --color-win-to: #047857;
+    --color-draw-from: #facc15;
+    --color-draw-to: #d97706;
+    --color-guy-from: #fb923c;
+    --color-guy-to: #ea580c;
+    --color-lose-from: #f43f5e;
+    --color-lose-to: #b91c1c;
+  }
+
   body {
     @apply min-h-dvh bg-ink font-sans text-base text-zinc-100 antialiased;
     background-image:
@@ -67,9 +105,15 @@
     background-attachment: fixed;
   }
 
+  html[data-theme="light"] body {
+    background-image:
+      radial-gradient(60rem 30rem at 50% -12rem, rgb(16 185 129 / 0.16), transparent 70%),
+      radial-gradient(40rem 24rem at 110% 10%, rgb(163 230 53 / 0.1), transparent 70%);
+  }
+
   select,
   input {
-    color-scheme: dark;
+    color-scheme: inherit;
   }
 }
 
@@ -91,7 +135,11 @@
   background-image: linear-gradient(135deg, var(--color-guy-from), var(--color-guy-to));
 }
 @utility grad-muted {
-  background-image: linear-gradient(135deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.06));
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-tint) 16%, transparent),
+    color-mix(in srgb, var(--color-tint) 6%, transparent)
+  );
 }
 
 /* Gradient text: pair with a grad-* utility */

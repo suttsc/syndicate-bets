@@ -155,11 +155,11 @@ function gameCard({ pick, event, result }, theGuy) {
     return `
       <div class="flex items-center gap-3">
         ${crest(team)}
-        <p class="min-w-0 flex-1 truncate ${backed ? 'font-semibold text-white' : 'text-zinc-400'}">
+        <p class="min-w-0 flex-1 truncate ${backed ? 'font-semibold text-fg' : 'text-zinc-400'}">
           ${esc(team.name)}
-          ${backed ? '<span class="ml-1 rounded-xs bg-white/10 px-1.5 py-0.5 align-middle text-[6.5px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
+          ${backed ? '<span class="ml-1 rounded-xs bg-tint/10 px-1.5 py-0.5 align-middle text-[6.5px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
         </p>
-        <p class="w-8 text-right font-display text-3xl font-bold tabular ${backed ? 'text-white' : 'text-zinc-500'}">${showScore ? esc(team.score) : ''}</p>
+        <p class="w-8 text-right font-display text-3xl font-bold tabular ${backed ? 'text-fg' : 'text-zinc-500'}">${showScore ? esc(team.score) : ''}</p>
       </div>`;
   };
 
@@ -174,7 +174,7 @@ function gameCard({ pick, event, result }, theGuy) {
         ${teamRow(event.home)}
         ${teamRow(event.away)}
       </div>
-      <div class="relative flex items-center justify-between gap-2 border-t border-white/[0.06] px-4 py-2.5">
+      <div class="relative flex items-center justify-between gap-2 border-t border-tint/[0.06] px-4 py-2.5">
         <p class="truncate text-[7.5px] font-semibold tracking-wider text-zinc-500 uppercase">${esc(leagueName(event.league))}</p>
         ${statusPill(result)}
       </div>
@@ -185,7 +185,7 @@ function statusChip(event) {
   const base = 'inline-flex shrink-0 items-center gap-1.5 rounded-xs px-2.5 py-1 text-xs font-bold';
 
   if (event.postponed) {
-    return `<span class="${base} bg-white/5 text-zinc-400">Postponed</span>`;
+    return `<span class="${base} bg-tint/5 text-zinc-400">Postponed</span>`;
   }
 
   if (event.state === 'in') {
@@ -197,10 +197,10 @@ function statusChip(event) {
   }
 
   if (event.state === 'post') {
-    return `<span class="${base} bg-white/5 text-zinc-300">${esc(event.detail || 'FT')}</span>`;
+    return `<span class="${base} bg-tint/5 text-zinc-300">${esc(event.detail || 'FT')}</span>`;
   }
 
-  return `<span class="${base} bg-white/5 text-zinc-300 tabular">${esc(kickoffTime(event.kickoff))}</span>`;
+  return `<span class="${base} bg-tint/5 text-zinc-300 tabular">${esc(kickoffTime(event.kickoff))}</span>`;
 }
 
 $('brand').innerHTML = brand();

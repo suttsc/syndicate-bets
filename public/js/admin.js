@@ -33,7 +33,7 @@ const state = {
 // Every league's fixtures per date, fetched once per date and shared by all games' team search.
 const allFixtures = new Map();
 
-const FIELD = 'mt-2 block h-12 w-full rounded-xs border-0 bg-white/5 px-3 text-base text-white ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-emerald-400';
+const FIELD = 'mt-2 block h-12 w-full rounded-xs border-0 bg-tint/5 px-3 text-base text-fg ring-1 ring-tint/10 outline-none focus:ring-2 focus:ring-emerald-400';
 const LABEL = 'text-[7.5px] font-semibold tracking-wider text-zinc-400 uppercase';
 
 const localDate = (iso) => new Date(iso).toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
@@ -125,7 +125,7 @@ function personButtons({ selected, attrs, dimmed = [], activeClass = '', activeS
     const active = name === selected;
     return `
       <button type="button" ${attrs(name)} aria-pressed="${active}"
-        class="h-11 rounded-xs text-sm font-bold transition active:scale-95 ${active ? `text-white shadow-lg ${activeClass}` : 'bg-white/5 text-zinc-300 ring-1 ring-white/10'} ${!active && dimmed.includes(name) ? 'opacity-35' : ''}"
+        class="h-11 rounded-xs text-sm font-bold transition active:scale-95 ${active ? `text-white shadow-lg ${activeClass}` : 'bg-tint/5 text-zinc-300 ring-1 ring-tint/10'} ${!active && dimmed.includes(name) ? 'opacity-35' : ''}"
         ${active ? `style="${activeStyle(name)}"` : ''}>${name}</button>`;
   }).join('');
 }
@@ -199,9 +199,9 @@ function slotCard(slot, index) {
 
   let matchControl;
   if (slot.loading && !slot.fixtures?.length) {
-    matchControl = '<div class="mt-2 h-12 animate-pulse rounded-xs bg-white/5"></div>';
+    matchControl = '<div class="mt-2 h-12 animate-pulse rounded-xs bg-tint/5"></div>';
   } else if (slot.fixtures?.length === 0) {
-    matchControl = `<p class="mt-2 rounded-xs bg-white/5 px-3 py-3.5 text-sm text-zinc-500">No ${esc(leagueName(slot.league))} games on ${esc(shortDate(slot.date))}</p>`;
+    matchControl = `<p class="mt-2 rounded-xs bg-tint/5 px-3 py-3.5 text-sm text-zinc-500">No ${esc(leagueName(slot.league))} games on ${esc(shortDate(slot.date))}</p>`;
   } else {
     matchControl = `
       <select data-field="eventId" data-index="${index}" class="${FIELD}">
@@ -216,7 +216,7 @@ function slotCard(slot, index) {
     const active = team.id === slot.teamId;
     return `
       <button type="button" data-team="${esc(team.id)}" data-index="${index}" aria-pressed="${active}"
-        class="flex min-h-14 items-center gap-2 rounded-xs p-2 text-left text-sm font-semibold transition active:scale-[.98] ${active ? 'bg-emerald-400/10 ring-2 ring-emerald-400' : 'bg-white/5 ring-1 ring-white/10'}">
+        class="flex min-h-14 items-center gap-2 rounded-xs p-2 text-left text-sm font-semibold transition active:scale-[.98] ${active ? 'bg-emerald-400/10 ring-2 ring-emerald-400' : 'bg-tint/5 ring-1 ring-tint/10'}">
         ${crest(team, 'size-8')}<span class="min-w-0 flex-1 leading-tight">${esc(team.name)}</span>
         ${active ? '<svg class="size-5 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>' : ''}
       </button>`;
@@ -258,7 +258,7 @@ function slotCard(slot, index) {
       </div>
 
       <p class="mt-4 flex items-center gap-3 text-[7.5px] font-semibold tracking-wider text-zinc-600 uppercase">
-        <span class="h-px flex-1 bg-white/10"></span>or choose by league<span class="h-px flex-1 bg-white/10"></span>
+        <span class="h-px flex-1 bg-tint/10"></span>or choose by league<span class="h-px flex-1 bg-tint/10"></span>
       </p>
 
       <label class="mt-2 block">
@@ -314,7 +314,7 @@ async function suggest(index, query) {
   box.innerHTML = matches.length
     ? matches.map(({ event, team, opponent }) => `
         <button type="button" role="option" data-suggest="${index}" data-event="${esc(event.id)}" data-team-id="${esc(team.id)}" data-league="${esc(event.league)}"
-          class="flex w-full items-center gap-3 rounded-xs bg-white/5 p-2 text-left ring-1 ring-white/10 transition active:scale-[.99] hover:bg-white/10">
+          class="flex w-full items-center gap-3 rounded-xs bg-tint/5 p-2 text-left ring-1 ring-tint/10 transition active:scale-[.99] hover:bg-tint/10">
           ${crest(team, 'size-8')}
           <span class="min-w-0 flex-1">
             <span class="block truncate font-semibold">${esc(team.name)}</span>
