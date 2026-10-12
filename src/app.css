@@ -166,3 +166,13 @@
 @utility glow-lose {
   box-shadow: 0 0 0 1px rgb(251 113 133 / 0.3), 0 10px 40px -12px rgb(220 38 38 / 0.45);
 }
+
+/* Bottom padding that clears the fixed bars plus the phone's gesture/nav area (safe-area inset),
+   so the last line of a page is never hidden. Keep in step with the bars' heights:
+   tab bar = h-16 (js/ui.js), admin save bar = pt-3 + h-12 button (admin.html). */
+@utility pb-tabbar {
+  padding-bottom: calc(var(--spacing) * (16 + 10) + env(safe-area-inset-bottom));
+}
+@utility pb-savebar {
+  padding-bottom: calc(var(--spacing) * (3 + 12 + 10) + max(8px, env(safe-area-inset-bottom)));
+}
