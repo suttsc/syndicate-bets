@@ -84,7 +84,7 @@ export async function getRound(env, key) {
 
   if (unsettled.length) {
     try {
-      live = await fetchEventsFor(env, unsettled.map((row) => ({ league: row.league, date: pickDate(row) })));
+      live = await fetchEventsFor(env, unsettled.map((row) => ({ league: row.league, date: pickDate(row), eventId: row.event_id })));
     } catch (error) {
       warning = `Live scores unavailable (${error.message})`;
     }

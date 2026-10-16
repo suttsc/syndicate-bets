@@ -64,16 +64,87 @@ describe('fetchEventsFor', () => {
     });
 
     const events = await fetchEventsFor({ ESPN_BASE: 'https://espn.test' }, [
-      { league: 'eng.1', date: '2026-10-17' },
-      { league: 'eng.1', date: '2026-10-18' },
-      { league: 'sco.1', date: '2026-10-17' },
+      { league: 'eng.1', date: '2026-10-17', eventId: '740001' },
+      { league: 'eng.1', date: '2026-10-17', eventId: '740002' },
+      { league: 'eng.1', date: '2026-10-18', eventId: '740003' },
     ]);
 
     const dates = urls.map((url) => new URL(url).searchParams.get('dates'));
     assert.ok(dates.every((d) => /^\d{8}$/.test(d)), `unexpected dates param: ${dates}`);
-    assert.equal(urls.filter((u) => u.includes('/eng.1/')).length, 4); // 16th–19th, overlap fetched once
-    assert.equal(urls.filter((u) => u.includes('/sco.1/')).length, 3);
+    // Every event is on its pick's own day, so only those two days are asked for, once each.
+    assert.deepEqual(dates.sort(), ['20261017', '20261018']);
     assert.equal(events.get('740003').home.name, 'Manchester City');
+  });
+
+  it('handles a round spread over Saturday and Sunday in different leagues', async (t) => {
+    const urls = [];
+    t.mock.method(globalThis, 'fetch', async (url) => {
+      urls.push(url);
+      const { pathname, searchParams } = new URL(url);
+      // Saturday's Premier League games, Sunday's Scottish game; every other day is empty.
+      if (pathname.includes('/eng.1/') && searchParams.get('dates') === '20261017') {
+        return new Response(JSON.stringify({ events: scoreboard.events.slice(0, 3) }));
+      }
+      if (pathname.includes('/sco.1/') && searchParams.get('dates') === '20261018') {
+        return new Response(JSON.stringify({ events: scoreboard.events.slice(4) }));
+      }
+      return new Response(JSON.stringify({ events: [] }));
+    });
+
+    const events = await fetchEventsFor({ ESPN_BASE: 'https://espn.test' }, [
+      { league: 'eng.1', date: '2026-10-17', eventId: '740001' },
+      { league: 'eng.1', date: '2026-10-17', eventId: '740002' },
+      { league: 'eng.1', date: '2026-10-17', eventId: '740003' },
+      { league: 'sco.1', date: '2026-10-18', eventId: '740005' },
+    ]);
+
+    assert.deepEqual([...events.keys()].sort(), ['740001', '740002', '740003', '740005']);
+    assert.equal(urls.length, 2);
+  });
+
+  it('looks a day either side only for a match not on its own day', async (t) => {
+    const urls = [];
+    t.mock.method(globalThis, 'fetch', async (url) => {
+      urls.push(url);
+      // ESPN files this late kick-off under the next day (UTC).
+      const found = new URL(url).searchParams.get('dates') === '20261019';
+      return new Response(JSON.stringify({ events: found ? scoreboard.events.slice(0, 1) : [] }));
+    });
+
+    const events = await fetchEventsFor({ ESPN_BASE: 'https://espn.test' }, [
+      { league: 'eng.1', date: '2026-10-18', eventId: '740001' },
+    ]);
+
+    assert.ok(events.has('740001'));
+    assert.deepEqual(urls.map((u) => new URL(u).searchParams.get('dates')).sort(), ['20261017', '20261018', '20261019']);
+  });
+
+  it('ignores a failed request that no pick needed', async (t) => {
+    t.mock.method(globalThis, 'fetch', async (url) => {
+      const { pathname, searchParams } = new URL(url);
+      if (pathname.includes('/sco.1/') && searchParams.get('dates') === '20261018') {
+        return new Response(JSON.stringify({ events: scoreboard.events.slice(4) }));
+      }
+      // Any other day errors: today that sinks the whole save even though no pick needs it.
+      return new Response('Bad Request', { status: 400 });
+    });
+    t.mock.method(console, 'error', () => {});
+
+    const events = await fetchEventsFor({ ESPN_BASE: 'https://espn.test' }, [
+      { league: 'sco.1', date: '2026-10-18', eventId: '740005' },
+    ]);
+
+    assert.ok(events.has('740005'));
+  });
+
+  it("explains a failed request when a pick couldn't be checked because of it", async (t) => {
+    t.mock.method(globalThis, 'fetch', async () => new Response('Bad Request', { status: 400 }));
+    t.mock.method(console, 'error', () => {});
+
+    await assert.rejects(
+      fetchEventsFor({ ESPN_BASE: 'https://espn.test' }, [{ league: 'eng.1', date: '2026-10-17', eventId: '740001' }]),
+      (error) => error instanceof HttpError && error.status === 502 && /responded 400/.test(error.message),
+    );
   });
 });
 

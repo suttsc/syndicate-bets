@@ -64,7 +64,8 @@ export async function fetchScoreboard(env, league, date) {
   try {
     response = await fetch(url, {
       headers: { accept: 'application/json' },
-      cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true },
+      // Cache good answers only, so one bad response from ESPN isn't served again for the next 30 s.
+      cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': CACHE_SECONDS, '300-599': 0 } },
     });
   } catch {
     throw new HttpError(502, 'Could not reach the scores service');
@@ -81,23 +82,55 @@ export async function fetchScoreboard(env, league, date) {
 }
 
 /**
- * Look up specific events: one single-day scoreboard request per league and date, all in parallel.
- * Each pick's date is widened by a day either side to absorb UK vs ESPN timezone differences.
- *
- * @param {Array<{league: string, date: string}>} wanted
- * @returns {Promise<Map<string, object>>} events by id
+ * Fetch each league|date scoreboard once, in parallel, adding what comes back to `events`.
+ * A failed day doesn't fail the rest; its error is returned for the caller to judge.
  */
-export async function fetchEventsFor(env, wanted) {
-  const requests = new Set(
-    wanted.flatMap(({ league, date }) => [-1, 0, 1].map((offset) => `${league}|${addDays(date, offset)}`)),
-  );
+async function fetchDays(env, keys, events, done) {
+  const todo = [...new Set(keys)].filter((key) => !done.has(key));
+  todo.forEach((key) => done.add(key));
 
-  const lists = await Promise.all(
-    [...requests].map((key) => {
+  const results = await Promise.allSettled(
+    todo.map((key) => {
       const [league, date] = key.split('|');
       return fetchScoreboard(env, league, date);
     }),
   );
 
-  return new Map(lists.flat().map((event) => [event.id, event]));
+  const errors = [];
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      result.value.forEach((event) => events.set(event.id, event));
+    } else {
+      errors.push(result.reason);
+    }
+  }
+  return errors;
+}
+
+/**
+ * Look up specific events with single-day scoreboard requests (ESPN rejects ranges), so a round can
+ * mix days and leagues freely. Each pick's own day is asked first; only a match not found there is
+ * looked for a day either side, to absorb UK vs ESPN (UTC) date differences. A failed request only
+ * matters if it leaves a pick unchecked: then its error is thrown, rather than "match not found".
+ *
+ * @param {Array<{league: string, date: string, eventId: string}>} wanted
+ * @returns {Promise<Map<string, object>>} events by id
+ */
+export async function fetchEventsFor(env, wanted) {
+  const events = new Map();
+  const done = new Set();
+  const missing = () => wanted.filter((pick) => !events.has(pick.eventId));
+
+  const errors = await fetchDays(env, wanted.map(({ league, date }) => `${league}|${date}`), events, done);
+
+  if (missing().length) {
+    const nearby = missing().flatMap(({ league, date }) => [-1, 1].map((offset) => `${league}|${addDays(date, offset)}`));
+    errors.push(...(await fetchDays(env, nearby, events, done)));
+  }
+
+  if (missing().length && errors.length) {
+    throw errors[0];
+  }
+
+  return events;
 }
