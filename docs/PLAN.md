@@ -73,7 +73,7 @@ When `GET /api/rounds/:n` runs, unsettled picks are refreshed from ESPN; any tha
 - **`/`** — latest round. **`/round/2026-27/9`** — a specific round (shareable; unknown paths fall back to `index.html`).
   - Header "Round 12", date range ("Fri 17 – Mon 20 Oct"), live count, ‹ › arrows to previous/next round.
   - Sticky summary: Winning / Drawing / Losing tiles + per-game bar; "3 of 4 won" card when complete.
-  - Game cards: picker (avatar + name + 👑 The Guy badge), teams with crests, score, live minute / FT / kick-off / Postponed, league + status badge.
+  - Game cards: picker (avatar + name + 👑 The Guy badge) with the league and clock (kick-off → live minute / HT → FT, or Postponed) top right; teams with crests and score, the backed team carrying a Winning / Drawing / Losing (then Won / Drew / Lost) pill once the game starts.
   - Auto-refresh 60 s while live, 5 min otherwise, on tab focus, and manual button. Completed rounds don't poll.
 - **`/history`** — list of rounds, newest first: number, dates, The Guy, result dots + "3 of 4 won". Tap → `/round/:n`.
 - **`/leaderboard`** — per person: won / played, win %, drawn, lost, last-5 form dots; their record when they were The Guy.

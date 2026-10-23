@@ -149,6 +149,8 @@ function gameCard({ pick, event, result }, theGuy) {
 
   const style = STATUS_STYLES[result.status];
   const showScore = event.state !== 'pre' && !event.postponed;
+  // How the bet stands sits beside the backed team's score once there is one; nothing before kick-off.
+  const showPill = !['pending', 'void'].includes(result.status);
 
   const teamRow = (team) => {
     const backed = team.id === pick.teamId;
@@ -159,6 +161,7 @@ function gameCard({ pick, event, result }, theGuy) {
           ${esc(team.name)}
           ${backed ? '<span class="ml-1 rounded-xs bg-tint/10 px-1.5 py-0.5 align-middle text-[6.5px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
         </p>
+        ${backed && showPill ? statusPill(result) : ''}
         <p class="w-8 text-right font-display text-3xl font-bold tabular ${backed ? 'text-fg' : 'text-zinc-500'}">${showScore ? esc(team.score) : ''}</p>
       </div>`;
   };
@@ -168,15 +171,14 @@ function gameCard({ pick, event, result }, theGuy) {
       ${style.grad !== 'grad-muted' ? `<span class="${style.grad} pointer-events-none absolute -top-16 -right-16 size-40 rounded-full opacity-[0.12] blur-3xl" aria-hidden="true"></span>` : ''}
       <div class="relative flex items-center justify-between gap-2 px-4 pt-4">
         ${picker(pick.picker, pick.picker === theGuy)}
-        ${statusChip(event)}
+        <div class="flex min-w-0 items-center gap-2">
+          <p class="truncate text-[7.5px] font-semibold tracking-wider text-zinc-500 uppercase">${esc(leagueName(event.league))}</p>
+          ${statusChip(event)}
+        </div>
       </div>
-      <div class="relative space-y-2.5 px-4 py-4">
+      <div class="relative space-y-2.5 px-4 pt-3 pb-4">
         ${teamRow(event.home)}
         ${teamRow(event.away)}
-      </div>
-      <div class="relative flex items-center justify-between gap-2 border-t border-tint/[0.06] px-4 py-2.5">
-        <p class="truncate text-[7.5px] font-semibold tracking-wider text-zinc-500 uppercase">${esc(leagueName(event.league))}</p>
-        ${statusPill(result)}
       </div>
     </article>`;
 }
