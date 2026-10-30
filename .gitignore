@@ -2,3 +2,4 @@ node_modules/
 public/assets/app.css
 .wrangler/
 .dev.vars
+public/js/version.js

@@ -141,3 +141,8 @@ README.md                   setup + usage
 - `manifest.webmanifest` (name, standalone display, dark theme colour, 192/512 + maskable icons from the original logo, History/Table shortcuts) and iOS home-screen meta tags on every page.
 - `sw.js`: pages, scripts and styles network-first (deploys show up immediately, cache is the offline fallback); fonts/images cache-first; GET `/api` live with the last good answer served offline, the Live page saying "You're offline: showing the last scores this phone saw"; admin saves and the fixtures picker are never cached.
 
+## Update: Settings sheet and themes
+- Settings tab at the bottom right of the tab bar (gear in the admin header) opens a bottom sheet (`<dialog>`): Mode (Dark / Light), Theme, Install app (browser install prompt; iPhone instructions; "Installed" when running as the app) and "Version <commit> · updated <build time>".
+- Themes = `data-style` on `<html>`: **Floodlight** (default, near-black, green glow, sharp corners) and **Terrace** (retro matchday programme: navy and gold, Oswald condensed headlines, 10px corners, blue floodlight glow; cream paper in light mode). Result colours stay green / yellow / red in every theme.
+- The header theme toggles were removed (now in Settings).
+

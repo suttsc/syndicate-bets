@@ -2,16 +2,17 @@
   "name": "syndicate-bets",
   "version": "1.0.0",
   "scripts": {
-    "build": "tailwindcss -i src/app.css -o public/assets/app.css --minify",
+    "build": "node scripts/version.mjs && tailwindcss -i src/app.css -o public/assets/app.css --minify",
     "dev": "wrangler dev",
     "dev:css": "tailwindcss -i src/app.css -o public/assets/app.css --watch",
     "deploy": "wrangler d1 migrations apply syndicate-bets --remote && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply syndicate-bets --local",
     "test": "node --test \"tests/**/*.test.js\"",
-    "fonts": "cp node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2 node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2 public/fonts/"
+    "fonts": "cp node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2 node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2 node_modules/@fontsource-variable/oswald/files/oswald-latin-wght-normal.woff2 public/fonts/"
   },
   "devDependencies": {
     "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/oswald": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
     "@tailwindcss/cli": "^4.3.3",
     "tailwindcss": "^4.3.3",

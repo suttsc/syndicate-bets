@@ -87,22 +87,28 @@ const TABS = [
   { key: 'table', href: '/leaderboard', label: 'Table', icon: '<path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3"/><path d="M7 5H4v2a3 3 0 0 0 3 3"/>' },
 ];
 
-/** Fixed bottom tab bar; `active` is one of live | history | table. */
+const SETTINGS_ICON = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/>';
+
+/** Fixed bottom tab bar; `active` is one of live | history | table. Settings sits at the far right. */
 export function mountTabbar(active) {
   const nav = document.createElement('nav');
   nav.setAttribute('aria-label', 'Main');
   nav.className = 'fixed inset-x-0 bottom-0 z-20 border-t border-tint/10 bg-ink/70 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl';
   nav.innerHTML = `
-    <div class="mx-auto grid max-w-md grid-cols-3">
+    <div class="mx-auto grid max-w-md grid-cols-4">
       ${TABS.map((tab) => {
         const on = tab.key === active;
         return `
-          <a href="${tab.href}" ${on ? 'aria-current="page"' : ''} class="relative flex h-16 flex-col items-center justify-center gap-1 text-[7.5px] font-semibold ${on ? 'text-fg' : 'text-zinc-500'}">
+          <a href="${tab.href}" ${on ? 'aria-current="page"' : ''} class="relative flex h-16 flex-col items-center justify-center gap-1 text-[7.5px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset ${on ? 'text-fg' : 'text-zinc-500'}">
             ${on ? '<span class="grad-win absolute top-0 h-0.5 w-10"></span>' : ''}
             <svg class="size-6 ${on ? 'text-emerald-400' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${tab.icon}</svg>
             ${tab.label}
           </a>`;
       }).join('')}
+      <button type="button" data-open-settings aria-haspopup="dialog" class="flex h-16 flex-col items-center justify-center gap-1 text-[7.5px] font-semibold text-zinc-500 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
+        <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SETTINGS_ICON}</svg>
+        Settings
+      </button>
     </div>`;
   document.body.append(nav);
 }

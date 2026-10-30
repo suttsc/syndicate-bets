@@ -5,7 +5,7 @@
 // - Scores (GET /api/…): always live; the last good answer is kept and served, labelled, when offline.
 // - Anything else (saving in admin, other sites' images): passed straight through, never cached.
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `syndicate-bets-${VERSION}`;
 const OFFLINE_NOTE = "You're offline: showing the last scores this phone saw";
 
@@ -18,6 +18,7 @@ const SHELL = [
   '/assets/app.css',
   '/fonts/inter-latin-wght-normal.woff2',
   '/fonts/space-grotesk-latin-wght-normal.woff2',
+  '/fonts/oswald-latin-wght-normal.woff2',
   '/img/logo.png',
   '/manifest.webmanifest',
 ];

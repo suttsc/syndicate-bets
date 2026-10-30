@@ -93,6 +93,18 @@ It then opens full screen with its own icon. Offline it still opens and shows th
 phone saw, labelled as such. When you change which files make up the app shell, bump `VERSION` in
 `public/sw.js` so phones drop the old cache.
 
+## Settings and themes
+
+The **Settings** tab (bottom right; a gear on the admin page) has Dark / Light mode, the theme picker,
+the Install app button, and the version that's running (commit and build time, written by
+`scripts/version.mjs` during `npm run build`). Both choices are remembered per device.
+
+Themes are token overrides in `src/app.css` under `html[data-style="<id>"]` (and the same with
+`[data-theme="light"]`), listed in `public/js/theme.js`. Floodlight is the default; Terrace is navy
+and gold with Oswald headlines. To add a theme: add a block for each mode overriding the tokens you
+want (colours, `--radius-xs`, `--font-display`, `--glow-a/b`), add it to `THEMES`, and allow its id
+in the inline `<head>` script of each page.
+
 ## Changing people or leagues
 
 Both lists live in `public/js/config.js` (used by the pages and validated by the API).

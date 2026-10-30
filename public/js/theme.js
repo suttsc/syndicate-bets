@@ -1,41 +1,57 @@
-// Light / dark mode. The initial theme is applied by an inline script in each page's <head>
-// (before first paint, so there's no flash); this module renders and wires up the toggle.
-const KEY = 'theme';
-const THEME_COLOR = { dark: '#050706', light: '#f3f5f4' };
+// Appearance: the mode (dark / light, data-theme on <html>) and the theme (data-style on <html>).
+// Both are remembered per device and applied by an inline script in each page's <head> before first
+// paint, so there's no flash; this module changes them from the Settings sheet.
 
-const SUN = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
-const MOON = '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>';
+export const MODES = ['dark', 'light'];
 
-const current = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+export const THEMES = [
+  {
+    id: 'floodlight',
+    name: 'Floodlight',
+    description: 'Near-black with a green glow and sharp corners.',
+    // Swatch colours and headline font for the picker, and the browser bar colour per mode.
+    swatch: ['#050706', '#34d399', '#f97316'],
+    font: '"Space Grotesk", sans-serif',
+    bar: { dark: '#050706', light: '#f3f5f4' },
+  },
+  {
+    id: 'terrace',
+    name: 'Terrace',
+    description: 'Retro matchday programme: navy and gold, condensed headlines.',
+    swatch: ['#0a1128', '#f5c542', '#fffaf0'],
+    font: '"Oswald", sans-serif',
+    bar: { dark: '#0a1128', light: '#f5efe2' },
+  },
+];
 
-function apply(theme) {
-  document.documentElement.dataset.theme = theme;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme]);
+const root = document.documentElement;
+
+export const currentMode = () => (root.dataset.theme === 'light' ? 'light' : 'dark');
+export const currentTheme = () => THEMES.find((t) => t.id === root.dataset.style) ?? THEMES[0];
+
+function remember(key, value) {
   try {
-    localStorage.setItem(KEY, theme);
+    localStorage.setItem(key, value);
   } catch {
     // Storage blocked (private mode): the choice just lasts for this page view.
   }
 }
 
-/** Shows the icon for the mode a tap switches to. */
-function render(button) {
-  const next = current() === 'dark' ? 'light' : 'dark';
-  button.setAttribute('aria-label', `Switch to ${next} mode`);
-  button.innerHTML = `<svg class="size-[12px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${next === 'light' ? SUN : MOON}</svg>`;
+/** The phone's status / browser bar follows the page. */
+function syncBar() {
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', currentTheme().bar[currentMode()]);
 }
 
-/** Turns every [data-theme-toggle] button on the page into a working toggle. */
-export function mountThemeToggle() {
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[current()]);
-
-  for (const button of document.querySelectorAll('[data-theme-toggle]')) {
-    render(button);
-    button.addEventListener('click', () => {
-      apply(current() === 'dark' ? 'light' : 'dark');
-      document.querySelectorAll('[data-theme-toggle]').forEach(render);
-    });
-  }
+export function setMode(mode) {
+  root.dataset.theme = MODES.includes(mode) ? mode : 'dark';
+  remember('theme', root.dataset.theme);
+  syncBar();
 }
 
-mountThemeToggle();
+export function setTheme(id) {
+  root.dataset.style = THEMES.some((t) => t.id === id) ? id : THEMES[0].id;
+  remember('style', root.dataset.style);
+  syncBar();
+}
+
+syncBar();
