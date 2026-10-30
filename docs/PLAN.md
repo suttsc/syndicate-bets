@@ -137,3 +137,7 @@ README.md                   setup + usage
 - Admin: choosing one swaps the match picker for Home team / Away team / Kick-off time, the usual Backing to win buttons, and an optional Final score (filled in later via Edit a round).
 - Server: the pick's snapshot is built from what was typed (`manual: true`, team ids `home` / `away`, event id `m…`); entering both scores settles it like an ESPN result, so it counts in History and the Table. Before that the card shows the kick-off time, then "Awaiting result".
 
+## Update: installable app (PWA)
+- `manifest.webmanifest` (name, standalone display, dark theme colour, 192/512 + maskable icons from the original logo, History/Table shortcuts) and iOS home-screen meta tags on every page.
+- `sw.js`: pages, scripts and styles network-first (deploys show up immediately, cache is the offline fallback); fonts/images cache-first; GET `/api` live with the last good answer served offline, the Live page saying "You're offline: showing the last scores this phone saw"; admin saves and the fixtures picker are never cached.
+

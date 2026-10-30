@@ -85,6 +85,14 @@ The Worker also creates any missing tables itself on its first API request (it r
 `migrations/0001_initial_schema.sql`, whose statements are all `IF NOT EXISTS`). So a fresh or emptied
 database fixes itself after a deploy and one visit to the site, even if the migration step didn't run.
 
+## Install as an app
+
+The site is a PWA (`public/manifest.webmanifest`, `public/sw.js`). On Android/Chrome, open it and
+choose **Install app** (or *Add to Home screen*); on iPhone, Safari → Share → **Add to Home Screen**.
+It then opens full screen with its own icon. Offline it still opens and shows the last scores the
+phone saw, labelled as such. When you change which files make up the app shell, bump `VERSION` in
+`public/sw.js` so phones drop the old cache.
+
 ## Changing people or leagues
 
 Both lists live in `public/js/config.js` (used by the pages and validated by the API).

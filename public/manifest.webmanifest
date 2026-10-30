@@ -1,0 +1,23 @@
+{
+  "name": "Syndicate Bets",
+  "short_name": "Syndicate",
+  "description": "Live scores for Chris, Jamie, Paul and Steve's football bets.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050706",
+  "theme_color": "#050706",
+  "lang": "en-GB",
+  "categories": ["sports"],
+  "icons": [
+    { "src": "/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/img/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "History", "url": "/history", "icons": [{ "src": "/img/icon-192.png", "sizes": "192x192" }] },
+    { "name": "The Table", "url": "/leaderboard", "icons": [{ "src": "/img/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

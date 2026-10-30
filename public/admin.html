@@ -8,12 +8,18 @@
     <title>Syndicate Bets · Admin</title>
     <link rel="icon" type="image/png" href="/img/favicon.png" />
     <link rel="apple-touch-icon" href="/img/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Syndicate" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="preload" href="/fonts/space-grotesk-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/assets/app.css" />
     <script>
       try { document.documentElement.dataset.theme = localStorage.getItem('theme') === 'light' ? 'light' : 'dark'; } catch {}
     </script>
     <script type="module" src="/js/theme.js"></script>
+    <script type="module" src="/js/pwa.js"></script>
     <script type="module" src="/js/admin.js"></script>
   </head>
   <body>
