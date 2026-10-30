@@ -1,5 +1,5 @@
 import { createRound, loadAllFixtures, loadFixtures, loadNextNumber, loadRound, loadRounds, updateRound } from './api.js';
-import { LEAGUES, PEOPLE, leagueName, personColor } from './config.js';
+import { LEAGUES, PEOPLE, isManualLeague, leagueName, personColor } from './config.js';
 import { isSeason, seasonFor } from './season.js';
 import { crest, esc, kickoffTime, shortDate } from './ui.js';
 
@@ -37,6 +37,10 @@ const FIELD = 'mt-2 block h-12 w-full rounded-xs border-0 bg-tint/5 px-3 text-ba
 const LABEL = 'text-[7.5px] font-semibold tracking-wider text-zinc-400 uppercase';
 
 const localDate = (iso) => new Date(iso).toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+const localTime = (iso) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+// Typed-in details of a game ESPN doesn't cover (see isManualLeague).
+const MANUAL_FIELDS = ['home', 'away', 'time', 'homeScore', 'awayScore'];
 
 function nextSaturday() {
   const date = new Date();
@@ -45,10 +49,21 @@ function nextSaturday() {
 }
 
 function newSlot(overrides = {}) {
-  return { picker: null, league: 'eng.1', date: nextSaturday(), eventId: null, teamId: null, fixtures: null, loading: false, ...overrides };
+  return {
+    picker: null, league: 'eng.1', date: nextSaturday(), eventId: null, teamId: null, fixtures: null, loading: false,
+    home: '', away: '', time: '15:00', homeScore: '', awayScore: '',
+    ...overrides,
+  };
 }
 
-const isReady = (slot) => slot.picker && slot.eventId && slot.teamId;
+const isManual = (slot) => isManualLeague(slot.league);
+
+function isReady(slot) {
+  if (!isManual(slot)) return slot.picker && slot.eventId && slot.teamId;
+
+  const bothScoresOrNeither = (slot.homeScore === '') === (slot.awayScore === '');
+  return slot.picker && slot.home.trim() && slot.away.trim() && slot.time && slot.teamId && bothScoresOrNeither;
+}
 const sameRound = (a, b) => a && b && a.season === b.season && a.number === b.number;
 const roundLabel = ({ season, number }) => `${season} · Round ${number}`;
 
@@ -95,7 +110,19 @@ async function startEdit(key) {
     message: null,
     slots: picks.map((pick) => {
       const event = events.find((e) => e.id === pick.eventId);
-      return newSlot({ ...pick, date: event ? localDate(event.kickoff) : nextSaturday(), fixtures: event ? [event] : null });
+      const slot = newSlot({ ...pick, date: event ? localDate(event.kickoff) : nextSaturday(), fixtures: event ? [event] : null });
+
+      if (isManual(slot) && event) {
+        const settled = event.state === 'post';
+        Object.assign(slot, {
+          home: event.home.name,
+          away: event.away.name,
+          time: localTime(event.kickoff),
+          homeScore: settled ? event.home.score : '',
+          awayScore: settled ? event.away.score : '',
+        });
+      }
+      return slot;
     }),
   });
   render();
@@ -104,6 +131,11 @@ async function startEdit(key) {
 
 /** Load a league's matches for a slot's date, keeping an already-chosen match in the list. */
 async function fetchFixtures(slot) {
+  if (isManual(slot)) {
+    render(); // typed in, nothing to look up: just show its fields
+    return;
+  }
+
   const chosen = slot.fixtures?.find((f) => f.id === slot.eventId);
   slot.loading = true;
   render();
@@ -219,7 +251,7 @@ function slotCard(slot, index) {
     return `
       <button type="button" data-team="${esc(team.id)}" data-index="${index}" aria-pressed="${active}"
         class="flex min-h-14 items-center gap-2 rounded-xs p-2 text-left text-sm font-semibold transition active:scale-[.98] ${active ? 'bg-emerald-400/10 ring-2 ring-emerald-400' : 'bg-tint/5 ring-1 ring-tint/10'}">
-        ${crest(team, 'size-8')}<span class="min-w-0 flex-1 leading-tight">${esc(team.name)}</span>
+        ${crest(team, 'size-8')}<span data-team-name class="min-w-0 flex-1 leading-tight">${esc(team.name)}</span>
         ${active ? '<svg class="size-5 shrink-0 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m5 12 5 5L20 7"/></svg>' : ''}
       </button>`;
   };
@@ -270,17 +302,52 @@ function slotCard(slot, index) {
         </select>
       </label>
 
-      <label class="mt-3 block">
-        <span class="${LABEL}">Match</span>
-        ${matchControl}
-      </label>
+      ${isManual(slot) ? manualGame(slot, index, teamButton) : `
+        <label class="mt-3 block">
+          <span class="${LABEL}">Match</span>
+          ${matchControl}
+        </label>
 
-      ${event ? `
-        <fieldset class="mt-3">
-          <legend class="${LABEL}">Backing to win</legend>
-          <div class="mt-2 grid grid-cols-2 gap-2">${teamButton(event.home)}${teamButton(event.away)}</div>
-        </fieldset>` : ''}
+        ${event ? `
+          <fieldset class="mt-3">
+            <legend class="${LABEL}">Backing to win</legend>
+            <div class="mt-2 grid grid-cols-2 gap-2">${teamButton(event.home)}${teamButton(event.away)}</div>
+          </fieldset>` : ''}`}
     </li>`;
+}
+
+/** A game ESPN doesn't cover: teams and kick-off typed in, and the final score added once it's over. */
+function manualGame(slot, index, teamButton) {
+  const input = (field, attrs, extraClass = '') =>
+    `<input data-field="${field}" data-index="${index}" value="${esc(slot[field])}" class="${FIELD} ${extraClass}" ${attrs} />`;
+  const side = (id) => ({ id, name: slot[id].trim() || (id === 'home' ? 'Home team' : 'Away team'), abbr: (slot[id].trim() || id).slice(0, 3).toUpperCase() });
+
+  return `
+    <p class="mt-3 text-sm text-zinc-400">ESPN doesn't cover this league, so type the game in and add the final score once it's over.</p>
+
+    <div class="mt-3 grid grid-cols-2 gap-2">
+      <label class="block"><span class="${LABEL}">Home team</span>${input('home', 'autocomplete="off" maxlength="40" placeholder="e.g. Chester"')}</label>
+      <label class="block"><span class="${LABEL}">Away team</span>${input('away', 'autocomplete="off" maxlength="40" placeholder="e.g. Darlington"')}</label>
+    </div>
+
+    <label class="mt-3 block">
+      <span class="${LABEL}">Kick-off time</span>
+      ${input('time', 'type="time"')}
+    </label>
+
+    <fieldset class="mt-3">
+      <legend class="${LABEL}">Backing to win</legend>
+      <div class="mt-2 grid grid-cols-2 gap-2" data-sides="${index}">${teamButton(side('home'))}${teamButton(side('away'))}</div>
+    </fieldset>
+
+    <fieldset class="mt-3">
+      <legend class="${LABEL}">Final score <span class="normal-case tracking-normal text-zinc-500">(add once it's over)</span></legend>
+      <div class="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        ${input('homeScore', 'type="number" min="0" max="99" inputmode="numeric" aria-label="Home score"', 'tabular text-center')}
+        <span class="mt-2 text-zinc-500">–</span>
+        ${input('awayScore', 'type="number" min="0" max="99" inputmode="numeric" aria-label="Away score"', 'tabular text-center')}
+      </div>
+    </fieldset>`;
 }
 
 /** Teams playing on the slot's date whose name contains the query, in any supported league. */
@@ -384,14 +451,36 @@ $('the-guy').addEventListener('click', (e) => {
 $('slots').addEventListener('input', (e) => {
   if (e.target.dataset.search !== undefined) {
     suggest(Number(e.target.dataset.search), e.target.value);
+    return;
+  }
+
+  // Typed-in game details update in place, without re-rendering, so focus stays where it is.
+  const { field, index } = e.target.dataset;
+  if (MANUAL_FIELDS.includes(field)) {
+    const slot = state.slots[Number(index)];
+    slot[field] = e.target.value;
+    if (field === 'home' || field === 'away') {
+      const label = document.querySelector(`[data-sides="${index}"] [data-team="${field}"] [data-team-name]`);
+      if (label) label.textContent = slot[field].trim() || (field === 'home' ? 'Home team' : 'Away team');
+    }
+    state.message = null;
+    renderStatus();
   }
 });
 
 $('slots').addEventListener('change', (e) => {
   const { field, index } = e.target.dataset;
-  if (!field) return;
+  if (!field || MANUAL_FIELDS.includes(field)) return;
 
   const slot = state.slots[Number(index)];
+
+  // A typed-in game keeps its details when only its date changes.
+  if (field === 'date' && isManual(slot)) {
+    slot.date = e.target.value || slot.date;
+    state.message = null;
+    render();
+    return;
+  }
   slot[field] = e.target.value || null;
   state.message = null;
 
@@ -447,7 +536,20 @@ $('save').addEventListener('click', async () => {
     season: state.season,
     number: state.number,
     theGuy: state.theGuy,
-    picks: state.slots.map(({ picker, league, date, eventId, teamId }) => ({ picker, league, date, eventId, teamId })),
+    picks: state.slots.map((slot) => {
+      const { picker, league, date, eventId, teamId } = slot;
+      if (!isManual(slot)) return { picker, league, date, eventId, teamId };
+
+      const goals = (value) => (value === '' ? null : Number(value));
+      return {
+        picker, league, date, eventId, teamId,
+        home: slot.home.trim(),
+        away: slot.away.trim(),
+        kickoff: new Date(`${date}T${slot.time}`).toISOString(), // the admin's local (UK) time
+        homeScore: goals(slot.homeScore),
+        awayScore: goals(slot.awayScore),
+      };
+    }),
   };
 
   try {

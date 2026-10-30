@@ -1,4 +1,4 @@
-import { LEAGUES } from '../../../public/js/config.js';
+import { ESPN_LEAGUES, isManualLeague } from '../../../public/js/config.js';
 import { fetchScoreboard } from '../lib/espn.js';
 import { HttpError, json } from '../lib/http.js';
 import { isDate, isLeague } from '../lib/validate.js';
@@ -15,17 +15,17 @@ export async function list({ env, request }) {
   if (!isDate(date)) throw new HttpError(422, 'Invalid date');
 
   if (league) {
-    if (!isLeague(league)) throw new HttpError(422, 'Unknown league');
+    if (!isLeague(league) || isManualLeague(league)) throw new HttpError(422, 'Unknown league');
     return json(await fetchScoreboard(env, league, date), { cache: 'public, max-age=60' });
   }
 
   // One slow or failing league shouldn't break search across the rest.
-  const results = await Promise.allSettled(LEAGUES.map(({ slug }) => fetchScoreboard(env, slug, date)));
-  const failed = LEAGUES.filter((_, i) => results[i].status === 'rejected').map((l) => l.slug);
+  const results = await Promise.allSettled(ESPN_LEAGUES.map(({ slug }) => fetchScoreboard(env, slug, date)));
+  const failed = ESPN_LEAGUES.filter((_, i) => results[i].status === 'rejected').map((l) => l.slug);
   const events = results
     .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
     .sort((a, b) => a.kickoff.localeCompare(b.kickoff));
 
-  if (failed.length === LEAGUES.length) throw new HttpError(502, 'Could not reach the scores service');
+  if (failed.length === ESPN_LEAGUES.length) throw new HttpError(502, 'Could not reach the scores service');
   return json({ events, failed }, { cache: 'public, max-age=60' });
 }

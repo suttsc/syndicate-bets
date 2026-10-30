@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import { addDays, fetchEventsFor, normaliseEvent } from '../src/server/lib/espn.js';
 import { HttpError } from '../src/server/lib/http.js';
-import { resultFor } from '../src/server/lib/rounds.js';
+import { resultFor, updateRound } from '../src/server/lib/rounds.js';
 import { validateRound } from '../src/server/lib/validate.js';
 import { splitStatements } from '../src/server/lib/sql.js';
 import { isSeason, roundPath, seasonFor, seasonFromSlug, seasonSlug } from '../public/js/season.js';
@@ -219,6 +219,87 @@ describe('validateRound', () => {
     for (const [body, message] of cases) {
       assert.throws(() => validateRound(body), (error) => error instanceof HttpError && error.status === 422 && message.test(error.message), JSON.stringify(body).slice(0, 80));
     }
+  });
+
+  describe('a hand-entered game (league not on ESPN)', () => {
+    const manual = {
+      picker: 'Steve', league: 'eng.nl_north', date: '2026-10-31', teamId: 'home',
+      home: '  Chester ', away: 'Darlington', kickoff: '2026-10-31T15:00:00.000Z',
+    };
+
+    it('needs no ESPN match id and trims team names', () => {
+      const [game] = validateRound({ ...base, picks: [manual] }).picks;
+      assert.deepEqual(game, {
+        picker: 'Steve', league: 'eng.nl_north', date: '2026-10-31', eventId: null, teamId: 'home',
+        home: 'Chester', away: 'Darlington', kickoff: '2026-10-31T15:00:00.000Z', homeScore: null, awayScore: null,
+      });
+    });
+
+    it('takes the final score as whole numbers and keeps its id when edited', () => {
+      const [game] = validateRound({ ...base, picks: [{ ...manual, eventId: 'm1761922800123', homeScore: '2', awayScore: 0 }] }).picks;
+      assert.equal(game.eventId, 'm1761922800123');
+      assert.equal(game.homeScore, 2);
+      assert.equal(game.awayScore, 0);
+    });
+
+    it('rejects a game without its details', () => {
+      const cases = [
+        [{ ...manual, away: ' ' }, /both team names/],
+        [{ ...manual, home: 'x'.repeat(41) }, /up to 40/],
+        [{ ...manual, kickoff: 'Saturday' }, /kick-off/],
+        [{ ...manual, teamId: '359' }, /choose a team/],
+        [{ ...manual, eventId: '740001' }, /unknown game/],
+        [{ ...manual, homeScore: 2 }, /both scores/],
+        [{ ...manual, homeScore: 1.5, awayScore: 0 }, /both scores/],
+        [{ ...manual, homeScore: -1, awayScore: 0 }, /both scores/],
+      ];
+      for (const [game, message] of cases) {
+        assert.throws(() => validateRound({ ...base, picks: [game] }), (error) => error.status === 422 && message.test(error.message), JSON.stringify(game));
+      }
+    });
+  });
+});
+
+/** Just enough of D1 for updateRound: canned SELECT answers, and every statement the batch ran. */
+function fakeDb(round, existingPicks = []) {
+  const ran = [];
+  const statement = (sql) => ({
+    sql,
+    args: [],
+    bind(...args) { this.args = args; return this; },
+    async first() { return sql.includes('FROM rounds WHERE season = ?1 AND number = ?2') && !sql.startsWith('SELECT id') ? round : null; },
+    async all() { return { results: existingPicks }; },
+  });
+  return { ran, prepare: statement, async batch(statements) { ran.push(...statements); } };
+}
+
+describe('updateRound with a hand-entered game', () => {
+  const round = { id: 7, season: '2026/27', number: 12, the_guy: 'Steve', status: 'open' };
+  const game = {
+    picker: 'Steve', league: 'eng.nl_north', date: '2026-10-31', eventId: 'm1', teamId: 'home',
+    home: 'Chester', away: 'Darlington', kickoff: '2026-10-31T15:00:00.000Z',
+  };
+
+  it('settles it from the typed-in score and completes the round', async () => {
+    const db = fakeDb(round);
+    await updateRound({ DB: db }, { season: '2026/27', number: 12 }, {
+      season: '2026/27', number: 12, theGuy: 'Steve', picks: [{ ...game, homeScore: 2, awayScore: 1 }],
+    });
+
+    const insert = db.ran.find((st) => st.sql.startsWith('INSERT INTO picks'));
+    assert.deepEqual(insert.args.slice(4, 10), ['m1', 'home', insert.args[6], 2, 1, 'won']);
+    assert.match(JSON.parse(insert.args[6]).home.name, /Chester/);
+    assert.equal(db.ran.find((st) => st.sql.startsWith('UPDATE rounds')).args[3], 'complete');
+  });
+
+  it('leaves the round open while the score is still to come', async () => {
+    const db = fakeDb(round);
+    await updateRound({ DB: db }, { season: '2026/27', number: 12 }, {
+      season: '2026/27', number: 12, theGuy: 'Steve', picks: [{ ...game, homeScore: null, awayScore: null }],
+    });
+
+    assert.equal(db.ran.find((st) => st.sql.startsWith('INSERT INTO picks')).args[9], null);
+    assert.equal(db.ran.find((st) => st.sql.startsWith('UPDATE rounds')).args[3], 'open');
   });
 });
 

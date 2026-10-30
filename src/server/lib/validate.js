@@ -1,4 +1,4 @@
-import { LEAGUES, PEOPLE } from '../../../public/js/config.js';
+import { LEAGUES, PEOPLE, isManualLeague } from '../../../public/js/config.js';
 import { isSeason } from '../../../public/js/season.js';
 import { HttpError } from './http.js';
 
@@ -40,10 +40,48 @@ export function validateRound(body) {
       if (!NAMES.includes(pick?.picker)) fail(`${game}: choose who picked it`);
       if (!isLeague(pick.league)) fail(`${game}: unknown league`);
       if (!isDate(pick.date)) fail(`${game}: invalid date`);
+
+      if (isManualLeague(pick.league)) {
+        return { picker: pick.picker, league: pick.league, date: pick.date, ...validateManualGame(pick, game) };
+      }
+
       if (!/^\d{1,12}$/.test(String(pick.eventId ?? ''))) fail(`${game}: choose a match`);
       if (!/^\d{1,12}$/.test(String(pick.teamId ?? ''))) fail(`${game}: choose a team`);
 
       return { picker: pick.picker, league: pick.league, date: pick.date, eventId: String(pick.eventId), teamId: String(pick.teamId) };
     }),
+  };
+}
+
+const MAX_TEAM_NAME = 40;
+const MAX_GOALS = 99;
+
+/** A game ESPN doesn't cover: teams and kick-off typed in, and the final score once it's known. */
+function validateManualGame(pick, game) {
+  const name = (value) => (typeof value === 'string' ? value.trim() : '');
+  const home = name(pick.home);
+  const away = name(pick.away);
+  const goals = (value) => (value === null || value === undefined || value === '' ? null : Number(value));
+  const homeScore = goals(pick.homeScore);
+  const awayScore = goals(pick.awayScore);
+  const validGoals = (value) => value === null || (Number.isInteger(value) && value >= 0 && value <= MAX_GOALS);
+
+  if (!home || !away) fail(`${game}: enter both team names`);
+  if (home.length > MAX_TEAM_NAME || away.length > MAX_TEAM_NAME) fail(`${game}: team names can be up to ${MAX_TEAM_NAME} characters`);
+  if (typeof pick.kickoff !== 'string' || Number.isNaN(Date.parse(pick.kickoff))) fail(`${game}: enter the kick-off time`);
+  if (!['home', 'away'].includes(pick.teamId)) fail(`${game}: choose a team`);
+  if (pick.eventId != null && !/^m\d{1,20}$/.test(String(pick.eventId))) fail(`${game}: unknown game`);
+  if (!validGoals(homeScore) || !validGoals(awayScore) || (homeScore === null) !== (awayScore === null)) {
+    fail(`${game}: enter both scores as whole numbers, or leave both empty`);
+  }
+
+  return {
+    eventId: pick.eventId == null ? null : String(pick.eventId),
+    teamId: pick.teamId,
+    home,
+    away,
+    kickoff: new Date(pick.kickoff).toISOString(),
+    homeScore,
+    awayScore,
   };
 }

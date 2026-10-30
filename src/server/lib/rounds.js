@@ -1,4 +1,4 @@
-import { PEOPLE } from '../../../public/js/config.js';
+import { PEOPLE, isManualLeague } from '../../../public/js/config.js';
 import { fetchEventsFor } from './espn.js';
 import { HttpError } from './http.js';
 
@@ -78,7 +78,8 @@ export async function getRound(env, key) {
     neighbours(db, round),
   ]);
 
-  const unsettled = rows.filter((row) => !row.result);
+  // Hand-entered games wait for their score in admin; everything else is refreshed from ESPN.
+  const unsettled = rows.filter((row) => !row.result && !isManualLeague(row.league));
   let live = new Map();
   let warning = null;
 
@@ -198,11 +199,45 @@ export async function leaderboard(db, season = null) {
   };
 }
 
-/** Check each pick against ESPN and capture a snapshot of the match (teams, crests, kick-off). */
+const newManualId = () => `m${Date.now()}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
+const initials = (name) => name.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || '?';
+
+/**
+ * A hand-entered game (a league ESPN doesn't cover): the snapshot is built from what was typed in,
+ * and the pick settles as soon as a final score is given.
+ */
+function manualPick(pick) {
+  const eventId = pick.eventId ?? newManualId();
+  const team = (side, name) => ({ id: side, name, abbr: initials(name), color: null, logo: null });
+  const home = team('home', pick.home);
+  const away = team('away', pick.away);
+  const scored = pick.homeScore !== null;
+
+  return {
+    ...pick,
+    eventId,
+    snapshot: JSON.stringify({ id: eventId, league: pick.league, kickoff: pick.kickoff, manual: true, home, away }),
+    homeScore: scored ? pick.homeScore : null,
+    awayScore: scored ? pick.awayScore : null,
+    result: scored
+      ? resultFor({ postponed: false, home: { ...home, score: pick.homeScore }, away: { ...away, score: pick.awayScore } }, pick.teamId)
+      : null,
+  };
+}
+
+/**
+ * Check each pick against ESPN and capture a snapshot of the match (teams, crests, kick-off).
+ * Hand-entered games skip ESPN and may arrive already settled.
+ */
 async function snapshotPicks(env, picks) {
-  const events = await fetchEventsFor(env, picks);
+  const fromEspn = picks.filter((pick) => !isManualLeague(pick.league));
+  const events = fromEspn.length ? await fetchEventsFor(env, fromEspn) : new Map();
 
   return picks.map((pick, i) => {
+    if (isManualLeague(pick.league)) {
+      return manualPick(pick);
+    }
+
     const event = events.get(pick.eventId);
 
     if (!event) {
@@ -215,9 +250,14 @@ async function snapshotPicks(env, picks) {
     // Keep only what doesn't change during a match; live state and scores come from ESPN or the frozen result.
     const { id, league, kickoff, home, away } = event;
     const strip = ({ score, ...team }) => team;
-    return { ...pick, snapshot: JSON.stringify({ id, league, kickoff, home: strip(home), away: strip(away) }) };
+    const snapshot = JSON.stringify({ id, league, kickoff, home: strip(home), away: strip(away) });
+    return { ...pick, snapshot, homeScore: null, awayScore: null, result: null };
   });
 }
+
+/** Every column a saved pick fills; settled_at is set when the pick is saved with a result. */
+const PICK_COLUMNS = '(round_id, position, picker, league, event_id, team_id, snapshot, home_score, away_score, result, settled_at)';
+const settledAt = (result) => (result ? new Date().toISOString().replace('T', ' ').slice(0, 19) : null);
 
 async function assertNumberFree(db, season, number, exceptId = null) {
   const taken = await db.prepare('SELECT id FROM rounds WHERE season = ?1 AND number = ?2').bind(season, number).first();
@@ -245,9 +285,10 @@ export async function createRound(env, { season, number, theGuy, picks }) {
     db.prepare('INSERT INTO rounds (season, number, the_guy) VALUES (?1, ?2, ?3)').bind(season, roundNumber, theGuy),
     ...withSnapshots.map((pick, i) =>
       db.prepare(
-        `INSERT INTO picks (round_id, position, picker, league, event_id, team_id, snapshot)
-         VALUES ((SELECT id FROM rounds WHERE season = ?1 AND number = ?2), ?3, ?4, ?5, ?6, ?7, ?8)`,
-      ).bind(season, roundNumber, i, pick.picker, pick.league, pick.eventId, pick.teamId, pick.snapshot),
+        `INSERT INTO picks ${PICK_COLUMNS}
+         VALUES ((SELECT id FROM rounds WHERE season = ?1 AND number = ?2), ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`,
+      ).bind(season, roundNumber, i, pick.picker, pick.league, pick.eventId, pick.teamId, pick.snapshot,
+        pick.homeScore, pick.awayScore, pick.result, settledAt(pick.result)),
     ),
   ]);
 
@@ -270,10 +311,13 @@ export async function updateRound(env, key, { season, number, theGuy, picks }) {
   await assertNumberFree(db, target.season, target.number, round.id);
 
   const { results: existing } = await db.prepare('SELECT * FROM picks WHERE round_id = ?1').bind(round.id).all();
-  const keep = (pick) => existing.find((row) => row.event_id === pick.eventId && row.team_id === pick.teamId);
+  // Hand-entered games are always rebuilt, since their names, kick-off or score may have been corrected.
+  const keep = (pick) =>
+    !isManualLeague(pick.league) && existing.find((row) => row.event_id === pick.eventId && row.team_id === pick.teamId);
 
   const fresh = picks.filter((pick) => !keep(pick));
   const snapshots = fresh.length ? await snapshotPicks(env, fresh) : [];
+  const built = new Map(fresh.map((pick, i) => [pick, snapshots[i]]));
 
   const statements = [db.prepare('DELETE FROM picks WHERE round_id = ?1').bind(round.id)];
 
@@ -281,23 +325,22 @@ export async function updateRound(env, key, { season, number, theGuy, picks }) {
     const kept = keep(pick);
     if (kept) {
       statements.push(
-        db.prepare(
-          `INSERT INTO picks (round_id, position, picker, league, event_id, team_id, snapshot, home_score, away_score, result, settled_at)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`,
-        ).bind(round.id, i, pick.picker, kept.league, kept.event_id, kept.team_id, kept.snapshot, kept.home_score, kept.away_score, kept.result, kept.settled_at),
+        db.prepare(`INSERT INTO picks ${PICK_COLUMNS} VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`)
+          .bind(round.id, i, pick.picker, kept.league, kept.event_id, kept.team_id, kept.snapshot, kept.home_score, kept.away_score, kept.result, kept.settled_at),
       );
     } else {
-      const snapshot = snapshots.find((s) => s.eventId === pick.eventId && s.teamId === pick.teamId);
+      const rebuilt = built.get(pick);
       statements.push(
-        db.prepare(
-          `INSERT INTO picks (round_id, position, picker, league, event_id, team_id, snapshot) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
-        ).bind(round.id, i, pick.picker, pick.league, pick.eventId, pick.teamId, snapshot.snapshot),
+        db.prepare(`INSERT INTO picks ${PICK_COLUMNS} VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`)
+          .bind(round.id, i, pick.picker, rebuilt.league, rebuilt.eventId, rebuilt.teamId, rebuilt.snapshot,
+            rebuilt.homeScore, rebuilt.awayScore, rebuilt.result, settledAt(rebuilt.result)),
       );
     }
   });
 
-  // Re-open the round if a new, unsettled pick was added; getRound marks it complete again when due.
-  const status = picks.every((pick) => keep(pick)?.result) ? 'complete' : 'open';
+  // Complete when every pick is settled (kept results or hand-entered scores); re-opened when one isn't.
+  // getRound marks an open round complete once ESPN settles the rest.
+  const status = picks.every((pick) => (keep(pick) || built.get(pick))?.result) ? 'complete' : 'open';
   statements.push(
     db.prepare(
       `UPDATE rounds SET season = ?1, number = ?2, the_guy = ?3, status = ?4, updated_at = datetime('now') WHERE id = ?5`,

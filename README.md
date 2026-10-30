@@ -89,6 +89,10 @@ database fixes itself after a deploy and one visit to the site, even if the migr
 
 Both lists live in `public/js/config.js` (used by the pages and validated by the API).
 
+A league ESPN doesn't cover (National League North and South today) is listed with `manual: true`.
+Its games are typed into the admin form (teams, kick-off, team backed) and settle once the final
+score is entered there via **Edit a round**.
+
 ## Notes
 
 - ESPN's API is unofficial. Everything ESPN-specific is in `src/server/lib/espn.js`; if it ever

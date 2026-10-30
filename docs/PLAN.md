@@ -131,3 +131,9 @@ README.md                   setup + usage
 - Design phase: Playwright screenshots at 390 px (light + dark) and 1280 px for every page/state; no console errors.
 - Backend: `npx wrangler dev` with local D1 and a mocked ESPN response (sandbox can't reach ESPN): create round → view live → simulate full time → confirm frozen results, history and leaderboard.
 - After deploy: check bets.chrissutton.co.uk on two devices; create a real round; confirm everyone sees it and live scores tick.
+
+## Update: leagues ESPN doesn't cover (National League North / South)
+- `LEAGUES` entries marked `manual: true` (`eng.nl_north`, `eng.nl_south`) are never sent to ESPN.
+- Admin: choosing one swaps the match picker for Home team / Away team / Kick-off time, the usual Backing to win buttons, and an optional Final score (filled in later via Edit a round).
+- Server: the pick's snapshot is built from what was typed (`manual: true`, team ids `home` / `away`, event id `m…`); entering both scores settles it like an ESPN result, so it counts in History and the Table. Before that the card shows the kick-off time, then "Awaiting result".
+

@@ -202,6 +202,11 @@ function statusChip(event) {
     return `<span class="${base} bg-tint/5 text-zinc-300">${esc(event.detail || 'FT')}</span>`;
   }
 
+  // Hand-entered games have no live feed: after kick-off they wait for the score to be typed in.
+  if (event.manual && Date.parse(event.kickoff) <= Date.now()) {
+    return `<span class="${base} bg-tint/5 text-zinc-400">Awaiting result</span>`;
+  }
+
   return `<span class="${base} bg-tint/5 text-zinc-300 tabular">${esc(kickoffTime(event.kickoff))}</span>`;
 }
 
