@@ -71,9 +71,9 @@ function renderRoundHead(round, rows, summary, prev, next) {
   $('round-head').innerHTML = `
     ${arrow(prev, 'prev')}
     <div class="min-w-0 text-center">
-      <p class="text-[10px] font-semibold tracking-[0.3em] text-zinc-500">${esc(round.season)}</p>
+      <p class="text-xs font-semibold tracking-[0.3em] text-zinc-500">${esc(round.season)}</p>
       <h1 class="mt-1 font-display text-[16px] leading-tight font-bold tracking-tight">Round <span class="grad-win text-grad tabular">${round.number}</span></h1>
-      <p class="mt-1 text-[10px] text-zinc-400">${esc(dateRange(kickoffs[0], kickoffs.at(-1)))}${live}</p>
+      <p class="mt-1 text-xs text-zinc-400">${esc(dateRange(kickoffs[0], kickoffs.at(-1)))}${live}</p>
     </div>
     ${arrow(next, 'next')}`;
 }
@@ -89,13 +89,17 @@ function renderSummary(summary) {
     $('summary').innerHTML = `
       <div class="glass ${good ? 'glow-win' : 'glow-lose'} relative overflow-hidden rounded-xs p-5">
         <div class="${grad} absolute -top-24 -right-20 size-56 rounded-full opacity-25 blur-3xl"></div>
-        <p class="text-[7.5px] font-semibold tracking-[0.3em] text-zinc-400 uppercase">Full time</p>
-        <p class="mt-1 font-display font-bold tracking-tight">
-          <span class="${grad} text-grad text-6xl tabular">${summary.won}</span>
-          <span class="text-2xl text-zinc-400">of ${summary.settledTotal} won</span>
-        </p>
+        <div class="relative flex items-center justify-between gap-4">
+          <p class="font-display font-bold tracking-tight">
+            <span class="${grad} text-grad text-6xl tabular">${summary.won}</span>
+            <span class="text-2xl text-zinc-400">of ${summary.settledTotal} won</span>
+          </p>
+          <div class="shrink-0 space-y-1 text-right">
+            <p class="text-xs font-semibold tracking-[0.3em] text-zinc-400 uppercase">Full time</p>
+            <p class="text-xs text-zinc-400 tabular">${counts.drawing} drew · ${counts.losing} lost${counts.void ? ` · ${counts.void} void` : ''}</p>
+          </div>
+        </div>
         <div class="mt-4">${bar}</div>
-        <p class="mt-2.5 text-xs text-zinc-400">${counts.drawing} drew · ${counts.losing} lost${counts.void ? ` · ${counts.void} void` : ''}</p>
       </div>`;
     return;
   }
@@ -107,7 +111,7 @@ function renderSummary(summary) {
       <div class="glass relative overflow-hidden rounded-xs px-2 py-3 text-center">
         ${value ? `<span class="${style.grad} absolute -top-10 left-1/2 size-20 -translate-x-1/2 rounded-full opacity-20 blur-2xl"></span>` : ''}
         <p class="relative font-display text-4xl font-bold tabular ${value ? `${style.grad} text-grad` : 'text-zinc-700'}">${value}</p>
-        <p class="relative text-[7.5px] font-semibold tracking-wider text-zinc-400 uppercase">${style.label}</p>
+        <p class="relative text-xs font-semibold tracking-wider text-zinc-400 uppercase">${style.label}</p>
       </div>`;
   };
 
@@ -159,7 +163,7 @@ function gameCard({ pick, event, result }, theGuy) {
         ${crest(team)}
         <p class="min-w-0 flex-1 truncate ${backed ? 'font-semibold text-fg' : 'text-zinc-400'}">
           ${esc(team.name)}
-          ${backed ? '<span class="ml-1 rounded-xs bg-tint/10 px-1.5 py-0.5 align-middle text-[6.5px] font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
+          ${backed ? '<span class="ml-1 rounded-xs bg-tint/10 px-1.5 py-0.5 align-middle text-xs font-bold tracking-wider text-zinc-200 uppercase">Pick</span>' : ''}
         </p>
         ${backed && showPill ? statusPill(result) : ''}
         <p class="w-8 text-right font-display text-3xl font-bold tabular ${backed ? 'text-fg' : 'text-zinc-500'}">${showScore ? esc(team.score) : ''}</p>
@@ -172,7 +176,7 @@ function gameCard({ pick, event, result }, theGuy) {
       <div class="relative flex items-center justify-between gap-2 px-4 pt-4">
         ${picker(pick.picker, pick.picker === theGuy)}
         <div class="flex min-w-0 items-center gap-2">
-          <p class="truncate text-[7.5px] font-semibold tracking-wider text-zinc-500 uppercase">${esc(leagueName(event.league))}</p>
+          <p class="truncate text-xs font-semibold tracking-wider text-zinc-500 uppercase">${esc(leagueName(event.league))}</p>
           ${statusChip(event)}
         </div>
       </div>
